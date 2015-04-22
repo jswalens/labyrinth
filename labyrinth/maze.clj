@@ -7,7 +7,7 @@
   In the C++ version, this does allocations; in Clojure we don't actually really
   need this."
   {:grid        (grid/alloc)
-   :work-queue  (list)
+   :work-queue  (ref (list))
    :wall-vector []
    :src-vector  []
    :dst-vector  []})
@@ -73,7 +73,7 @@
       (assoc-in [:grid :width]  (:width  in))
       (assoc-in [:grid :height] (:height in))
       (assoc-in [:grid :depth]  (:depth  in))
-      (assoc :work-queue  work
+      (assoc :work-queue  (ref work) ; XXX: new ref instead of update of old?
              :wall-vector (:walls in)
              :src-vector  (:srcs in)
              :dst-vector  (:dsts in)))))

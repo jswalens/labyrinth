@@ -57,6 +57,8 @@ Options:                            (defaults)
         (println "Paths routed    =" (count @paths))
         (println @paths)
         (println "Elapsed time    = XXX seconds")
+        ; TOOD: print final grid?
+        ; (grid/print (:grid maze))
         ; TODO: verification of paths
         ;(if (maze/check-paths maze paths)
         ;  (println "Verification passed.")
