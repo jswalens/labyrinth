@@ -87,7 +87,7 @@
         (let [path (traceback ...)]
           (if path
             (do
-              ;(grid/add-path path) update grid to mark path as taken
+              (grid/add-path path) ; update grid to mark path as taken
               path)
             nil)) ; traceback failed
         nil)))) ; expansion failed

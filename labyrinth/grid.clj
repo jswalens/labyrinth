@@ -31,3 +31,12 @@
 (defn set-point [grid point v]
   "Set a point in the grid to `v`, returns updated grid."
   (assoc-in grid [:points (get-point-index grid point)] v))
+
+(defn add-path [grid points]
+  "For each point in `points`, mark location in `grid` as full.
+  Returns updated grid."
+  (reduce
+    (fn [grid point]
+      (set-point grid point :full))
+    grid
+    points))
