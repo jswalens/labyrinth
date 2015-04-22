@@ -35,6 +35,9 @@
 (defn add-path [grid points]
   "For each point in `points`, mark location in `grid` as full.
   Returns updated grid."
+  ; TODO: XXX Now this is equivalent to grid_addPath. Should it be equivalent
+  ; to TMgrid_addPath instead? I.e. check if point is still empty, if not,
+  ; restart.
   (reduce
     (fn [grid point]
       (set-point grid point :full))
