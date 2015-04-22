@@ -1,3 +1,5 @@
+(ns labyrinth
+  (:require [maze]))
 
 (def default-params
   {:bend-cost  1
@@ -5,7 +7,7 @@
    :x-cost     1
    :y-cost     1
    :z-cost     2
-   :input-file ""
+   :input-file "inputs/random-x32-y32-z3-n64.txt"
    :print      false})
 
 (def usage
@@ -44,6 +46,8 @@ Options:                            (defaults)
     (if (or (:arg-error params) (nil? params))
       (do (println "Error parsing arguments")
           (println params)
-          (println usage)))))
+          (println usage))
+      (let [maze (maze/read (maze/alloc) (:input-file params))]
+        (println maze)))))
 
 (main *command-line-args*)
