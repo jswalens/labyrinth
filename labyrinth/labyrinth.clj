@@ -1,5 +1,6 @@
 (ns labyrinth
-  (:require [maze]))
+  (:require [maze]
+            [router]))
 
 (def default-params
   {:bend-cost  1
@@ -47,7 +48,19 @@ Options:                            (defaults)
       (do (println "Error parsing arguments")
           (println params)
           (println usage))
-      (let [maze (maze/read (maze/alloc) (:input-file params))]
-        (println maze)))))
+      (let [maze  (maze/read (maze/alloc) (:input-file params))
+            paths (ref [])]
+        (println maze)
+        ; TODO: in new thread(s), and time this!
+        (time (router/solve params maze paths))
+        ; Once everything is done
+        (println "Paths routed    =" (count @paths))
+        (println @paths)
+        (println "Elapsed time    = XXX seconds")
+        ; TODO: verification of paths
+        ;(if (maze/check-paths maze paths)
+        ;  (println "Verification passed.")
+        ;  (println "Verification FAILED!"))
+        ))))
 
 (main *command-line-args*)
