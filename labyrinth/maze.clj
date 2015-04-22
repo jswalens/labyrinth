@@ -64,14 +64,16 @@
 
 (defn read [maze input-file-name]
   "Reads the given file and returns the maze it contains."
-  (let [input      (read-input-file input-file-name)
-        work-queue (sort-by identity coordinate/compare-pairs
-                     (:work-list input))]
+  (let [in   (read-input-file input-file-name)
+        work (sort-by identity coordinate/compare-pairs
+               (:work-list in))]
+    (println "Maze dimensions =" (:width in) "x" (:height in) "x" (:depth in))
+    (println "Paths to route  =" (count work))
     (-> maze
-      (assoc-in [:grid :width]  (:width input))
-      (assoc-in [:grid :height] (:height input))
-      (assoc-in [:grid :depth]  (:depth input))
-      (assoc :work-queue work-queue
-             :wall-vector (:walls input)
-             :src-vector (:srcs input)
-             :dst-vector (:dsts input)))))
+      (assoc-in [:grid :width]  (:width  in))
+      (assoc-in [:grid :height] (:height in))
+      (assoc-in [:grid :depth]  (:depth  in))
+      (assoc :work-queue  work
+             :wall-vector (:walls in)
+             :src-vector  (:srcs in)
+             :dst-vector  (:dsts in)))))
