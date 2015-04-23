@@ -54,7 +54,10 @@ Options:                            (defaults)
         ; TODO: in new thread(s), and time this!
         (time (router/solve params maze list-of-paths))
         ; Once everything is done
-        (println "Paths routed    =" (count (flatten @list-of-paths)))
+        (println "Paths routed    =" (count (apply concat @list-of-paths)))
+        ; Note: (apply concat ...) flattens once, i.e. it turns the list of
+        ; list of paths into a single list of paths (but each path is still a
+        ; list of points)
         (println "Paths:" @list-of-paths)
         (println "Elapsed time    = XXX seconds")
         ; TOOD: print final grid?
