@@ -65,12 +65,12 @@
     (if (empty? queue)
       {:grid grid :reachable false}
       (let [current (first queue)]
-        (if (= current dst) ; XXX: does = work here?
+        (if (coordinate/equal? current dst)
           {:grid grid :reachable true}
           (let [{updated-grid :grid new-points :new-points}
                   (expand-point grid current params)]
             (recur
-              (concat (pop queue) new-points)
+              (vec (concat (pop queue) new-points))
               updated-grid)))))))
 
 (defn- next-steps [grid my-grid current-step params]

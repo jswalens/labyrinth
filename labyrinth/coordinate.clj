@@ -20,6 +20,13 @@
   Longer paths first so they are more likely to succeed."
   (- (compare (distance a1 b1) (distance a2 b2))))
 
+(defn equal? [a b]
+  "Are the two points equal?"
+  (and
+    (= (:x a) (:x b))
+    (= (:y a) (:y b))
+    (= (:z a) (:z b))))
+
 (defn step-to [dir point]
   "Calculate point with step taken in given direction."
   (case dir
