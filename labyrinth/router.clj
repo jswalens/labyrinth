@@ -152,8 +152,8 @@
             (log "traceback failed"))) ; traceback failed
         (log "expansion failed"))))) ; expansion failed
 
-(defn solve [params maze list-of-paths]
-  "Solve maze, append found paths to `list-of-paths`."
+(defn solve [params maze paths-per-thread]
+  "Solve maze, append found paths to `paths-per-thread`."
   (let [work-queue  (:work-queue maze)
         shared-grid (:grid maze)
         my-paths
@@ -168,9 +168,9 @@
                     (recur my-paths)))
                 my-paths)))]
     ; add found paths to shared list of list of paths
-    ; Note: in Clojure, it would make more sense to return these paths and let
+    ; Note: in Clojure, it would make more sense to return my-paths and let
     ; the caller merge them (not using transactions). However, in the C++
     ; version threads can't return anything so the results need to be written to
     ; a shared variable in this manner.
     (dosync
-      (alter list-of-paths conj my-paths))))
+      (alter paths-per-thread conj my-paths))))
