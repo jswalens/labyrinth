@@ -73,32 +73,21 @@
               (vec (concat (rest queue) new-points))
               updated-grid)))))))
 
-(defn- next-steps [grid my-grid current-step params]
+(defn- next-steps [grid my-grid current-step bend-cost]
   "All possible next steps after the current one, and their cost.
   Returns list of elements of the format:
   `{:step {:point next-point :direction dir} :cost 123}`"
   (->>
-    [{:direction :x-pos :bend-cost true}
-     {:direction :x-neg :bend-cost true}
-     {:direction :y-pos :bend-cost true}
-     {:direction :y-neg :bend-cost true}
-     {:direction :z-pos :bend-cost true}
-     {:direction :z-neg :bend-cost true}
-     {:direction :x-pos :bend-cost false}
-     {:direction :x-neg :bend-cost false}
-     {:direction :y-pos :bend-cost false}
-     {:direction :y-neg :bend-cost false}
-     {:direction :z-pos :bend-cost false}
-     {:direction :z-neg :bend-cost false}]
+    [:x-pos :x-neg :y-pos :y-neg :z-pos :z-neg]
     (map
-      (fn [{dir :direction bend-cost? :bend-cost}]
+      (fn [dir]
         (let [point (coordinate/step-to dir (:point current-step))]
           (if (and (grid/is-point-valid? grid point)
                    (not (= (grid/get-point my-grid point) :empty))
                    (not (= @(grid/get-point grid point) :full)))
-            (let [bending? (not= dir (:direction current-step))
-                  bend-cost (if (and bend-cost? bending?) (:bend-cost params) 0)
-                  cost (+ (grid/get-point my-grid point) bend-cost)]
+            (let [bending?  (not= dir (:direction current-step))
+                  b-cost    (if bending? bend-cost 0)
+                  cost      (+ (grid/get-point my-grid point) b-cost)]
               {:step {:point point :direction dir} :cost cost})
             nil))))
     (filter identity))) ; filter nil
@@ -107,10 +96,17 @@
   "Returns least costly step amongst possible next steps.
   A step is of the form `{:point next-point :direction dir}` where `next-point`
   is a neighbor of `current` and `dir` is e.g. `:x-pos`."
-  ; XXX: In contrast to the original version, we don't check whether the found
-  ; step is cheaper than staying in place, as this normally should never be the
-  ; case.
-  (:step (first (sort-by :cost (next-steps grid my-grid current-step params)))))
+  ; First, try with bend cost
+  (let [steps    (next-steps grid my-grid current-step (:bend-cost params))
+        cheapest (first (sort-by :cost steps))]
+    (if (<= (:cost cheapest) (grid/get-point my-grid (:point current-step)))
+      (:step cheapest)
+      ; If none found, try without bend cost
+      (let [steps    (next-steps grid my-grid current-step 0)
+            cheapest (first (sort-by :cost steps))]
+        (if (<= (:cost cheapest) (grid/get-point my-grid (:point current-step)))
+          (:step cheapest)
+          (println "No cheap step found (cannot happen)."))))))
 
 (defn traceback [grid my-grid dst params]
   "Go back from dst to src, along an optimal path, and mark these cells as
