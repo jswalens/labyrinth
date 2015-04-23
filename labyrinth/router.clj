@@ -125,11 +125,14 @@
         (cons (:point current) path)))))
 
 (defn- find-work [queue]
-  "In a transaction, fetches top of queue, or returns nil if queue is empty."
+  "In a transaction, pops element of queue and returns it, or returns nil
+  if queue is empty."
   (dosync
     (if (empty? @queue)
       nil
-      (first @queue))))
+      (let [top (first @queue)]
+        (alter queue (comp pop vec)) ; XXX: convert to veq is ugly
+        top))))
 
 (defn- find-path [[src dst] grid params]
   "Tries to find a path. Returns path if one was found, nil otherwise.
