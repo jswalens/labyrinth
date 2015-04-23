@@ -132,12 +132,14 @@
     (if (empty? @queue)
       nil
       (let [top (first @queue)]
+        (println "found work" top)
+        (println queue)
         (alter queue pop)
         top))))
 
 (defn- find-path [[src dst] grid params]
   "Tries to find a path. Returns path if one was found, nil otherwise.
-  A path is a vector of XXX coordinates/points? XXX"
+  A path is a vector of points."
   (dosync
     (let [{reachable? :reachable my-grid :grid}
             (expand src dst (grid/copy grid) params)]
@@ -145,7 +147,7 @@
         (let [path (traceback grid my-grid dst params)]
           (if path
             (do
-              (grid/add-path path) ; update grid to mark path as taken
+              (grid/add-path grid path) ; update global grid
               path)
             nil)) ; traceback failed
         nil)))) ; expansion failed

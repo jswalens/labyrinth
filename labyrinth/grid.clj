@@ -38,20 +38,14 @@
 
 (defn get-point [grid point]
   "Get a point in the grid, or :empty if not found."
-  (nth (:points grid) (get-point-index grid point) :empty))
+  (nth (:points grid) (get-point-index grid point)))
 
 (defn set-point [grid point v]
   "Set a point in the grid to `v`, returns updated grid."
   (assoc-in grid [:points (get-point-index grid point)] v))
 
 (defn add-path [grid points]
-  "For each point in `points`, mark location in `grid` as full.
-  Returns updated grid."
-  ; TODO: XXX Now this is equivalent to grid_addPath. Should it be equivalent
-  ; to TMgrid_addPath instead? I.e. check if point is still empty, if not,
-  ; restart.
-  (reduce
-    (fn [grid point]
-      (set-point grid point :full))
-    grid
-    points))
+  "For each point in `points`, mark location in `grid` as full."
+  (dosync
+    (doseq [p points]
+      (ref-set (get-point grid p) :full))))
