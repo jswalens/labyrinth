@@ -9,7 +9,7 @@
   {:width  width
    :height height
    :depth  depth
-   :points (repeatedly (* width height depth) #(ref :empty))})
+   :points (vec (repeatedly (* width height depth) #(ref :empty)))})
 
 (defn copy [grid]
   "Make a local grid, copying the given grid.
@@ -20,7 +20,7 @@
     {:width  (:width grid)
      :height (:height grid)
      :depth  (:depth grid)
-     :points (map deref (:points grid))}))
+     :points (vec (map deref (:points grid)))}))
 
 (defn is-point-valid? [grid {x :x y :y z :z}]
   "Is point within the boundaries of grid?"
@@ -28,9 +28,9 @@
     (>= x 0)
     (>= y 0)
     (>= z 0)
-    (< x (:width grid)
+    (< x (:width grid))
     (< y (:height grid))
-    (< z (:depth grid)))))
+    (< z (:depth grid))))
 
 (defn get-point-index [grid {x :x y :y z :z}]
   "Get the index of a 3D point in a 1D grid vector."
