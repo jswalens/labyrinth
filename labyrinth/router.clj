@@ -131,7 +131,7 @@
     (if (empty? @queue)
       nil
       (let [top (first @queue)]
-        (alter queue (comp pop vec)) ; XXX: convert to veq is ugly
+        (alter queue (comp pop vec)) ; XXX: convert to vec is ugly
         top))))
 
 (defn- find-path [[src dst] grid params]
@@ -149,8 +149,8 @@
             nil)) ; traceback failed
         nil)))) ; expansion failed
 
-(defn solve [params maze paths]
-  "Solve maze, append found paths to `paths`."
+(defn solve [params maze list-of-paths]
+  "Solve maze, append found paths to `list-of-paths`."
   (let [work-queue (:work-queue maze)
         grid       (:grid maze)
         my-paths
@@ -163,6 +163,6 @@
                     (recur (conj my-paths path))
                     (recur my-paths)))
                 my-paths)))]
-    ; add found paths to global list of (list ofXXX) paths
+    ; add found paths to global list of list of paths
     (dosync
-      (alter paths conj my-paths))))
+      (alter list-of-paths conj my-paths))))

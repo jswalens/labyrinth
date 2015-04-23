@@ -46,16 +46,16 @@ Options:                            (defaults)
   (let [params (parse-args args)]
     (if (or (:arg-error params) (nil? params))
       (do (println "Error parsing arguments")
-          (println params)
+          (println "Params:" params)
           (println usage))
-      (let [maze  (maze/read (:input-file params))
-            paths (ref [])]
+      (let [maze          (maze/read (:input-file params))
+            list-of-paths (ref [])]
         (println maze)
         ; TODO: in new thread(s), and time this!
-        (time (router/solve params maze paths))
+        (time (router/solve params maze list-of-paths))
         ; Once everything is done
-        (println "Paths routed    =" (count @paths))
-        (println @paths)
+        (println "Paths routed    =" (count (flatten @list-of-paths)))
+        (println "Paths:" @list-of-paths)
         (println "Elapsed time    = XXX seconds")
         ; TOOD: print final grid?
         ; (grid/print (:grid maze))
