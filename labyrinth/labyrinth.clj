@@ -25,10 +25,15 @@ Options:                            (defaults)
     z <UINT>   [z] movement cost    (2)")
 
 (defn parse-args [args]
-  "Parse the arguments. Not very nice, but should work."
+  "Parse the arguments.
+  Will return strange results or throw exceptions on invalid input."
+  ; Not very nice code, but should work.
   (reduce
     (fn [res arg]
       (if (.startsWith arg "-")
+        ; Trick: for parameter names (e.g. -i), we return a function. In the
+        ; next iteration, this will be filled in by calling this function with
+        ; the parameter value.
         (case (.substring arg 1)
           "b" #(assoc res :bend-cost %)
           "t" #(assoc res :n-threads %)
@@ -38,6 +43,8 @@ Options:                            (defaults)
           "i" #(assoc res :input-file %)
           "p" (assoc res :print true)
               (assoc res :arg-error true))
+        ; Call previous result, assuming its a function that sets the right
+        ; parameter.
         (res arg)))
     default-params args))
 
@@ -48,17 +55,17 @@ Options:                            (defaults)
       (do (println "Error parsing arguments")
           (println "Params:" params)
           (println usage))
-      (let [maze          (maze/read (:input-file params))
-            list-of-paths (ref [])]
+      (let [maze             (maze/read (:input-file params))
+            paths-per-thread (ref [])]
         (println maze)
         ; TODO: in new thread(s), and time this!
-        (time (router/solve params maze list-of-paths))
+        (time (router/solve params maze paths-per-thread))
         ; Once everything is done
-        (println "Paths routed    =" (count (apply concat @list-of-paths)))
+        (println "Paths routed    =" (count (apply concat @paths-per-thread)))
         ; Note: (apply concat ...) flattens once, i.e. it turns the list of
         ; list of paths into a single list of paths (but each path is still a
         ; list of points)
-        (println "Paths:" @list-of-paths)
+        (println "Paths (per thread):" @paths-per-thread)
         (println "Elapsed time    = XXX seconds")
         ; TOOD: print final grid?
         ; (grid/print (:grid maze))
