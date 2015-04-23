@@ -131,7 +131,7 @@
     (if (empty? @queue)
       nil
       (let [top (first @queue)]
-        (alter queue (comp pop vec)) ; XXX: convert to vec is ugly
+        (alter queue pop)
         top))))
 
 (defn- find-path [[src dst] grid params]

@@ -7,7 +7,7 @@
   In the C++ version, this does allocations; in Clojure we don't actually really
   need this."
   {:grid        grid
-   :work-queue  (ref work-queue)
+   :work-queue  (ref work-queue) ; list, not vector!
    :wall-vector walls
    :src-vector  srcs
    :dst-vector  dsts})
@@ -62,11 +62,14 @@
     (clojure.string/split-lines
       (slurp input-file-name))))
 
+(defn- to-list [seq]
+  (into (list) seq))
+
 (defn read [input-file-name]
   "Reads the given file and returns the maze it contains."
   (let [in   (read-input-file input-file-name)
-        work (sort-by identity coordinate/compare-pairs
-               (:work-list in))]
+        work (to-list (sort-by identity coordinate/compare-pairs
+               (:work-list in)))]
     (println "Maze dimensions =" (:width in) "x" (:height in) "x" (:depth in))
     (println "Paths to route  =" (count work))
     (maze/alloc
