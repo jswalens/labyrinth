@@ -154,19 +154,16 @@
 
 (defn solve [params maze paths-per-thread]
   "Solve maze, append found paths to `paths-per-thread`."
-  (let [work-queue  (:work-queue maze)
-        shared-grid (:grid maze)
-        my-paths
+  (let [my-paths
           ; find paths until no work left
           (loop [my-paths []]
-            (let [work (find-work work-queue)]
-              (if work
-                (let [path (find-path work shared-grid params)]
-                  (log "found path" path)
-                  (if path
-                    (recur (conj my-paths path))
-                    (recur my-paths)))
-                my-paths)))]
+            (if-let [work (find-work (:work-queue maze))]
+              (let [path (find-path work (:grid maze) params)]
+                (log "found path" path)
+                (if path
+                  (recur (conj my-paths path))
+                  (recur my-paths)))
+              my-paths))]
     ; add found paths to shared list of list of paths
     ; Note: in Clojure, it would make more sense to return my-paths and let
     ; the caller merge them (not using transactions). However, in the C++
