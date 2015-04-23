@@ -76,7 +76,7 @@
               (vec (concat (rest queue) new-points))
               updated-grid)))))))
 
-(defn- next-steps [global-grid local-grid current-step bend-cost]
+(defn- next-steps [shared-grid local-grid current-step bend-cost]
   "All possible next steps after the current one, and their cost.
   Returns list of elements of the format:
   `{:step {:point next-point :direction dir} :cost 123}`"
@@ -85,9 +85,9 @@
     (map
       (fn [dir]
         (let [point (coordinate/step-to dir (:point current-step))]
-          (if (and (grid/is-point-valid? global-grid point)
+          (if (and (grid/is-point-valid? shared-grid point)
                    (not (= (grid/get-point local-grid point) :empty))
-                   (not (= @(grid/get-point global-grid point) :full)))
+                   (not (= @(grid/get-point shared-grid point) :full)))
             (let [bending?  (not= dir (:direction current-step))
                   b-cost    (if bending? bend-cost 0)
                   cost      (+ (grid/get-point local-grid point) b-cost)]
@@ -95,32 +95,32 @@
             nil))))
     (filter identity))) ; filter nil
 
-(defn- find-cheapest-step [global-grid local-grid current-step params]
+(defn- find-cheapest-step [shared-grid local-grid current-step params]
   "Returns least costly step amongst possible next steps.
   A step is of the form `{:point next-point :direction dir}` where `next-point`
   is a neighbor of `current` and `dir` is e.g. `:x-pos`."
   ; First, try with bend cost
   (let [current  (grid/get-point local-grid (:point current-step))
-        steps    (next-steps global-grid local-grid current-step (:bend-cost params))
+        steps    (next-steps shared-grid local-grid current-step (:bend-cost params))
         cheapest (first (sort-by :cost steps))]
     (if (<= (:cost cheapest) current)
       (:step cheapest)
       ; If none found, try without bend cost
-      (let [steps    (next-steps global-grid local-grid current-step 0)
+      (let [steps    (next-steps shared-grid local-grid current-step 0)
             cheapest (first (sort-by :cost steps))]
         (if (<= (:cost cheapest) current)
           (:step cheapest)
           (println "No cheap step found (cannot happen)."))))))
 
-(defn traceback [global-grid local-grid dst params]
+(defn traceback [shared-grid local-grid dst params]
   "Go back from dst to src, along an optimal path, and mark these cells as
-  filled in the global and local grid. "
+  filled in the shared and local grid. "
   (loop [current {:point dst :direction :zero}
          path    (list)]
-    (ref-set (grid/get-point global-grid (:point current)) :full)
+    (ref-set (grid/get-point shared-grid (:point current)) :full)
     (if (= (grid/get-point local-grid (:point current)) 0)
       (cons (:point current) path)
-      (let [next-step (find-cheapest-step global-grid local-grid current params)]
+      (let [next-step (find-cheapest-step shared-grid local-grid current params)]
         (if next-step
           (recur next-step (cons (:point current) path))
           nil)))))
@@ -137,17 +137,17 @@
         (alter queue pop)
         top))))
 
-(defn- find-path [[src dst] global-grid params]
+(defn- find-path [[src dst] shared-grid params]
   "Tries to find a path. Returns path if one was found, nil otherwise.
   A path is a vector of points."
   (dosync
     (let [{reachable? :reachable local-grid :grid}
-            (expand src dst (grid/copy global-grid) params)]
+            (expand src dst (grid/copy shared-grid) params)]
       (if reachable?
-        (let [path (traceback global-grid local-grid dst params)]
+        (let [path (traceback shared-grid local-grid dst params)]
           (if path
             (do
-              (grid/add-path global-grid path) ; update global grid
+              (grid/add-path shared-grid path) ; update shared grid
               path)
             (log "traceback failed"))) ; traceback failed
         (log "expansion failed"))))) ; expansion failed
@@ -155,18 +155,18 @@
 (defn solve [params maze list-of-paths]
   "Solve maze, append found paths to `list-of-paths`."
   (let [work-queue  (:work-queue maze)
-        global-grid (:grid maze)
+        shared-grid (:grid maze)
         my-paths
           ; find paths until no work left
           (loop [my-paths []]
             (let [work (find-work work-queue)]
               (if work
-                (let [path (find-path work global-grid params)]
+                (let [path (find-path work shared-grid params)]
                   (log "found path" path)
                   (if path
                     (recur (conj my-paths path))
                     (recur my-paths)))
                 my-paths)))]
-    ; add found paths to global list of list of paths
+    ; add found paths to shared list of list of paths
     (dosync
       (alter list-of-paths conj my-paths))))
