@@ -97,14 +97,15 @@
   A step is of the form `{:point next-point :direction dir}` where `next-point`
   is a neighbor of `current` and `dir` is e.g. `:x-pos`."
   ; First, try with bend cost
-  (let [steps    (next-steps grid my-grid current-step (:bend-cost params))
+  (let [current  (grid/get-point my-grid (:point current-step))
+        steps    (next-steps grid my-grid current-step (:bend-cost params))
         cheapest (first (sort-by :cost steps))]
-    (if (<= (:cost cheapest) (grid/get-point my-grid (:point current-step)))
+    (if (<= (:cost cheapest) current)
       (:step cheapest)
       ; If none found, try without bend cost
       (let [steps    (next-steps grid my-grid current-step 0)
             cheapest (first (sort-by :cost steps))]
-        (if (<= (:cost cheapest) (grid/get-point my-grid (:point current-step)))
+        (if (<= (:cost cheapest) current)
           (:step cheapest)
           (println "No cheap step found (cannot happen)."))))))
 
@@ -114,7 +115,7 @@
   (loop [current {:point dst :direction :zero}
          path    (list)]
     (ref-set (grid/get-point grid (:point current)) :full)
-    (if (= (grid/get-point-index my-grid (:point current)) 0)
+    (if (= (grid/get-point my-grid (:point current)) 0)
       (cons (:point current) path)
       (let [next-step (find-cheapest-step grid my-grid current params)]
         (if next-step
