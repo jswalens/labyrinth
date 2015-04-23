@@ -19,3 +19,13 @@
   "Compare two coordinate pairs, by their distance.
   Longer paths first so they are more likely to succeed."
   (- (compare (distance a1 b1) (distance a2 b2))))
+
+(defn step-to [dir point]
+  "Calculate point with step taken in given direction."
+  (case dir
+    :x-pos (update-in point [:x] inc)
+    :x-neg (update-in point [:x] dec)
+    :y-pos (update-in point [:y] inc)
+    :y-neg (update-in point [:y] dec)
+    :z-pos (update-in point [:z] inc)
+    :z-neg (update-in point [:z] dec)))

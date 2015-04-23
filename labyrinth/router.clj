@@ -1,4 +1,5 @@
-(ns router)
+(ns router
+  :require [coordinate])
 
 ; Not needed
 ;(defn alloc [x-cost y-cost z-cost bend-cost]
@@ -49,27 +50,79 @@
 
 (defn expand [src dst my-grid params]
   "Try to find a path from `src` to `dst` through `my-grid`.
-  Returns `{:grid grid :path found}`, where `grid` is the updated grid and
-  `found` is true if a path was found."
+  Returns `{:grid grid :reachable found}`, where `grid` is the updated grid and
+  `found` is true if the destination was reached. (There might be multiple
+  paths from src to dst.)"
   (loop [queue
           ; start at source
           [src]
         grid
           (-> my-grid
             ; src = 0
-            (assoc-in [:points (grid/get-point-index src)] 0)
+            (assoc-in [:points (grid/get-point-index my-grid src)] 0)
             ; dst = empty
-            (assoc-in [:points (grid/get-point-index dst)] :empty))]
+            (assoc-in [:points (grid/get-point-index my-grid dst)] :empty))]
     (if (empty? queue)
-      {:grid grid :path false}
+      {:grid grid :reachable false}
       (let [current (first queue)]
         (if (= current dst) ; XXX: does = work here?
-          {:grid grid :path true}
+          {:grid grid :reachable true}
           (let [{updated-grid :grid new-points :new-points}
                   (expand-point grid current params)]
             (recur
               (concat (pop queue) new-points)
               updated-grid)))))))
+
+(defn- next-steps [grid my-grid current-step params]
+  "All possible next steps after the current one, and their cost.
+  Returns list of elements of the format:
+  `{:step {:point next-point :direction dir} :cost 123}`"
+  (->>
+    [{:direction :x-pos :bend-cost true}
+     {:direction :x-neg :bend-cost true}
+     {:direction :y-pos :bend-cost true}
+     {:direction :y-neg :bend-cost true}
+     {:direction :z-pos :bend-cost true}
+     {:direction :z-neg :bend-cost true}
+     {:direction :x-pos :bend-cost false}
+     {:direction :x-neg :bend-cost false}
+     {:direction :y-pos :bend-cost false}
+     {:direction :y-neg :bend-cost false}
+     {:direction :z-pos :bend-cost false}
+     {:direction :z-neg :bend-cost false}]
+    (map
+      (fn [{dir :direction bend-cost? :bend-cost}]
+        (let [point (coordinate/step-to dir (:point current-step))]
+          (if (and (grid/is-point-valid? grid point)
+                   (not (= (grid/get-point my-grid point) :empty))
+                   (not (= (grid/get-point grid point) :full)))
+            (let [bending? (!= dir (:direction current-step))
+                  bend-cost (if (and bend-cost? bending?) (:bend-cost params) 0)
+                  cost (+ (grid/get-point my-grid point) bend-cost)]
+              {:step {:point point :direction dir} :cost cost})
+            nil))))
+    (filter id))) ; filter nil
+
+(defn- find-cheapest-step [grid my-grid current-step params]
+  "Returns least costly step amongst possible next steps.
+  A step is of the form `{:point next-point :direction dir}` where `next-point`
+  is a neighbor of `current` and `dir` is e.g. `:x-pos`."
+  ; XXX: In contrast to the original version, we don't check whether the found
+  ; step is cheaper than staying in place, as this normally should never be the
+  ; case.
+  (:step (first (sort-by :cost (next-steps grid my-grid current-step params)))))
+
+(defn traceback [grid my-grid dst params]
+  "Go back from dst to src, along an optimal path, and mark these cells as
+  filled in the grid. "
+  (loop [current {:point dst :direction :zero}
+         path    (list)]
+    (ref-set current :full)
+    (if (= (grid/get-point-index my-grid (:point current)) 0)
+      (cons (:point current) path)
+      (recur
+        (find-cheapest-step grid my-grid current params)
+        (cons (:point current) path)))))
 
 (defn- find-work [queue]
   "In a transaction, fetches top of queue, or returns nil if queue is empty."
@@ -82,9 +135,10 @@
   "Tries to find a path. Returns path if one was found, nil otherwise.
   A path is a vector of XXX coordinates/points? XXX"
   (dosync
-    (let [my-grid (grid/copy grid)]
-      (if (expand src dst my-grid params)
-        (let [path (traceback ...)]
+    (let [{reachable? :reachable my-grid :grid}
+            (expand src dst (grid/copy grid) params)]
+      (if reachable?
+        (let [path (traceback grid my-grid dst params)]
           (if path
             (do
               (grid/add-path path) ; update grid to mark path as taken
