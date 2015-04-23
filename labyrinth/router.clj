@@ -115,14 +115,19 @@
 (defn traceback [shared-grid local-grid dst params]
   "Go back from dst to src, along an optimal path, and mark these cells as
   filled in the shared and local grid. "
-  (loop [current {:point dst :direction :zero}
-         path    (list)]
-    (ref-set (grid/get-point shared-grid (:point current)) :full)
-    (if (= (grid/get-point local-grid (:point current)) 0)
-      (cons (:point current) path)
-      (let [next-step (find-cheapest-step shared-grid local-grid current params)]
-        (if next-step
-          (recur next-step (cons (:point current) path))
+  (loop [current-step {:point dst :direction :zero}
+         path         (list)]
+    (let [current-point (:point current-step)]
+      ; current point full in shared grid
+      ; TODO: wait, this is also done by grid/add-path in find-path!!
+      (ref-set (grid/get-point shared-grid current-point) :full)
+      (if (= (grid/get-point local-grid current-point) 0)
+        ; current-point = source: we're done
+        (cons current-point path)
+        ; find next point along cheapest step
+        (if-let [next-step (find-cheapest-step shared-grid local-grid
+                             current-step params)]
+          (recur next-step (cons current-point path))
           nil)))))
 
 (defn- find-work [queue]
@@ -133,7 +138,6 @@
       nil
       (let [top (first @queue)]
         (log "found work" top)
-        (log queue)
         (alter queue pop)
         top))))
 
@@ -149,8 +153,8 @@
             (do
               (grid/add-path shared-grid path) ; update shared grid
               path)
-            (log "traceback failed"))) ; traceback failed
-        (log "expansion failed"))))) ; expansion failed
+            (log "traceback failed (cannot happen)")))
+        (log "expansion failed")))))
 
 (defn solve [params maze paths-per-thread]
   "Solve maze, append found paths to `paths-per-thread`."
