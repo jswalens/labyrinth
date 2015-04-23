@@ -70,7 +70,7 @@
           (let [{updated-grid :grid new-points :new-points}
                   (expand-point grid current params)]
             (recur
-              (vec (concat (pop queue) new-points))
+              (vec (concat (rest queue) new-points))
               updated-grid)))))))
 
 (defn- next-steps [grid my-grid current-step params]
@@ -117,7 +117,7 @@
   filled in the grid. "
   (loop [current {:point dst :direction :zero}
          path    (list)]
-    (ref-set current :full)
+    (ref-set (grid/get-point grid (:point current)) :full)
     (if (= (grid/get-point-index my-grid (:point current)) 0)
       (cons (:point current) path)
       (recur
