@@ -157,8 +157,8 @@
   (let [my-paths
           ; find paths until no work left
           (loop [my-paths []]
-            (if-let [work (find-work (:work-queue maze))]
-              (let [path (find-path work (:grid maze) params)]
+            (if-let [work (find-work (:work-queue maze))]      ; find-work = tx
+              (let [path (find-path work (:grid maze) params)] ; find-path = tx
                 (log "found path" path)
                 (if path
                   (recur (conj my-paths path))
