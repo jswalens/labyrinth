@@ -9,6 +9,8 @@
 ;   :z-cost    z-cost
 ;   :bend-cost bend-cost})
 
+(def log println)
+
 (defn- expand-point [grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
   A neighbor is still to be expanded if it not filled yet, and either:
@@ -53,6 +55,8 @@
   Returns `{:grid grid :reachable found}`, where `grid` is the updated grid and
   `found` is true if the destination was reached. (There might be multiple
   paths from src to dst.)"
+  (log "src" src)
+  (log "dst" dst)
   (loop [queue
           ; start at source
           [src]
@@ -62,6 +66,7 @@
             (assoc-in [:points (grid/get-point-index my-grid src)] 0)
             ; dst = empty
             (assoc-in [:points (grid/get-point-index my-grid dst)] :empty))]
+    (log "queue" queue)
     (if (empty? queue)
       {:grid grid :reachable false}
       (let [current (first queue)]
@@ -129,8 +134,8 @@
     (if (empty? @queue)
       nil
       (let [top (first @queue)]
-        (println "found work" top)
-        (println queue)
+        (log "found work" top)
+        (log queue)
         (alter queue pop)
         top))))
 
@@ -146,8 +151,8 @@
             (do
               (grid/add-path grid path) ; update global grid
               path)
-            nil)) ; traceback failed
-        nil)))) ; expansion failed
+            (log "traceback failed"))) ; traceback failed
+        (log "expansion failed"))))) ; expansion failed
 
 (defn solve [params maze list-of-paths]
   "Solve maze, append found paths to `list-of-paths`."
@@ -159,6 +164,7 @@
             (let [work (find-work work-queue)]
               (if work
                 (let [path (find-path work grid params)]
+                  (log "found path" path)
                   (if path
                     (recur (conj my-paths path))
                     (recur my-paths)))
