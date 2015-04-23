@@ -3,9 +3,8 @@
 (defn alloc [width height depth]
   "Returns an empty grid of the requested size.
 
-  In the C++ version, this does allocations; in Clojure we don't actually really
-  need this. The C++ version also ensures the points are aligned in the cache,
-  we don't do this."
+  The C++ version ensures the points are aligned in the cache, we don't do
+  this."
   {:width  width
    :height height
    :depth  depth
@@ -15,7 +14,6 @@
   "Make a local grid, copying the given grid.
   It has the same structure as a normal grid, except that its points are NOT
   put in refs."
-  ; TODO: maybe they should be?
   (dosync
     {:width  (:width grid)
      :height (:height grid)
@@ -37,11 +35,13 @@
   (+ x (* (+ y (* z (:height grid))) (:width grid))))
 
 (defn get-point [grid point]
-  "Get a point in the grid, or :empty if not found."
+  "Get a point in the grid, or throws an exception if not found."
   (nth (:points grid) (get-point-index grid point)))
 
 (defn set-point [grid point v]
-  "Set a point in the grid to `v`, returns updated grid."
+  "Set a point in the grid to `v`, returns updated grid.
+  Works on local grid, not on global one (there, the point is a ref and should
+  be updated directly)."
   (assoc-in grid [:points (get-point-index grid point)] v))
 
 (defn add-path [grid points]
