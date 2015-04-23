@@ -1,5 +1,5 @@
 (ns router
-  :require [coordinate])
+  (:require [coordinate]))
 
 ; Not needed
 ;(defn alloc [x-cost y-cost z-cost bend-cost]
@@ -33,7 +33,7 @@
           (filter
             (fn [p]
               (and
-                (!= (grid/get-point grid p) :full)
+                (not= (grid/get-point grid p) :full)
                 (or
                   (= (grid/get-point grid p) :empty)
                   (<
@@ -96,12 +96,12 @@
           (if (and (grid/is-point-valid? grid point)
                    (not (= (grid/get-point my-grid point) :empty))
                    (not (= (grid/get-point grid point) :full)))
-            (let [bending? (!= dir (:direction current-step))
+            (let [bending? (not= dir (:direction current-step))
                   bend-cost (if (and bend-cost? bending?) (:bend-cost params) 0)
                   cost (+ (grid/get-point my-grid point) bend-cost)]
               {:step {:point point :direction dir} :cost cost})
             nil))))
-    (filter id))) ; filter nil
+    (filter identity))) ; filter nil
 
 (defn- find-cheapest-step [grid my-grid current-step params]
   "Returns least costly step amongst possible next steps.
