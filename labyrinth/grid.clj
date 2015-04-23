@@ -1,14 +1,26 @@
 (ns grid)
 
-(defn alloc []
-  "Returns a 'default' grid.
+(defn alloc [width height depth]
+  "Returns an empty grid of the requested size.
+
   In the C++ version, this does allocations; in Clojure we don't actually really
   need this. The C++ version also ensures the points are aligned in the cache,
   we don't do this."
-  {:width  nil
-   :height nil
-   :depth  nil
-   :points []})
+  {:width  width
+   :height height
+   :depth  depth
+   :points (repeatedly (* width height depth) #(ref :empty))})
+
+(defn copy [grid]
+  "Make a local grid, copying the given grid.
+  It has the same structure as a normal grid, except that its points are NOT
+  put in refs."
+  ; TODO: maybe they should be?
+  (dosync
+    {:width  (:width grid)
+     :height (:height grid)
+     :depth  (:depth grid)
+     :points (map deref (:points grid))}))
 
 (defn is-point-valid? [grid {x :x y :y z :z}]
   "Is point within the boundaries of grid?"

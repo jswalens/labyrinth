@@ -48,7 +48,7 @@ Options:                            (defaults)
       (do (println "Error parsing arguments")
           (println params)
           (println usage))
-      (let [maze  (maze/read (maze/alloc) (:input-file params))
+      (let [maze  (maze/read (:input-file params))
             paths (ref [])]
         (println maze)
         ; TODO: in new thread(s), and time this!

@@ -2,15 +2,15 @@
   (:require [grid]
             [coordinate]))
 
-(defn alloc []
-  "Returns a 'default' maze.
+(defn alloc [grid work-queue walls srcs dsts]
+  "Returns a maze based on the given parameters.
   In the C++ version, this does allocations; in Clojure we don't actually really
   need this."
-  {:grid        (grid/alloc)
-   :work-queue  (ref (list))
-   :wall-vector []
-   :src-vector  []
-   :dst-vector  []})
+  {:grid        grid
+   :work-queue  (ref work-queue)
+   :wall-vector walls
+   :src-vector  srcs
+   :dst-vector  dsts})
 
 (defn- string->int [s]
   "Converts s to integer, returns nil in case of error"
@@ -62,18 +62,16 @@
     (clojure.string/split-lines
       (slurp input-file-name))))
 
-(defn read [maze input-file-name]
+(defn read [input-file-name]
   "Reads the given file and returns the maze it contains."
   (let [in   (read-input-file input-file-name)
         work (sort-by identity coordinate/compare-pairs
                (:work-list in))]
     (println "Maze dimensions =" (:width in) "x" (:height in) "x" (:depth in))
     (println "Paths to route  =" (count work))
-    (-> maze
-      (assoc-in [:grid :width]  (:width  in))
-      (assoc-in [:grid :height] (:height in))
-      (assoc-in [:grid :depth]  (:depth  in))
-      (assoc :work-queue  (ref work) ; XXX: new ref instead of update of old?
-             :wall-vector (:walls in)
-             :src-vector  (:srcs in)
-             :dst-vector  (:dsts in)))))
+    (maze/alloc
+      (grid/alloc (:width in) (:height in) (:depth in))
+      work
+      (:walls in)
+      (:srcs in)
+      (:dsts in))))

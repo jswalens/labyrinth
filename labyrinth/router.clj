@@ -82,7 +82,7 @@
   "Tries to find a path. Returns path if one was found, nil otherwise.
   A path is a vector of XXX coordinates/points? XXX"
   (dosync
-    (let [my-grid ...copy grid...]
+    (let [my-grid (grid/copy grid)]
       (if (expand src dst my-grid params)
         (let [path (traceback ...)]
           (if path
