@@ -95,7 +95,7 @@
         (let [point (coordinate/step-to dir (:point current-step))]
           (if (and (grid/is-point-valid? grid point)
                    (not (= (grid/get-point my-grid point) :empty))
-                   (not (= (grid/get-point grid point) :full)))
+                   (not (= @(grid/get-point grid point) :full)))
             (let [bending? (not= dir (:direction current-step))
                   bend-cost (if (and bend-cost? bending?) (:bend-cost params) 0)
                   cost (+ (grid/get-point my-grid point) bend-cost)]
@@ -120,9 +120,10 @@
     (ref-set (grid/get-point grid (:point current)) :full)
     (if (= (grid/get-point-index my-grid (:point current)) 0)
       (cons (:point current) path)
-      (recur
-        (find-cheapest-step grid my-grid current params)
-        (cons (:point current) path)))))
+      (let [next-step (find-cheapest-step grid my-grid current params)]
+        (if next-step
+          (recur next-step (cons (:point current) path))
+          nil)))))
 
 (defn- find-work [queue]
   "In a transaction, pops element of queue and returns it, or returns nil
