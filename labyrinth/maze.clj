@@ -112,7 +112,7 @@
             (fn [errors j]
               (if-not (coordinate/adjecent? (nth path j) (nth path (inc j)))
                 (conj errors (str "Points " j " (" (nth path j) ") and "
-                  (inc j) "(" (nth path (inc j)) ") of path " i
+                  (inc j) " (" (nth path (inc j)) ") of path " i
                   " are not adjecent"))
                 errors))
             errors3
