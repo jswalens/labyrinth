@@ -80,6 +80,7 @@
       (:dsts in))))
 
 (defn- check-path [test-grid i path errors]
+  "Checks whether the given path is correct. Updates errors if it isn't."
   (let [; check whether start = src
         errors1
           (if (not= (grid/get-point test-grid (first path)) 0)
