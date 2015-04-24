@@ -8,6 +8,13 @@
    :y y
    :z z})
 
+(defn equal? [a b]
+  "Are the two points equal?"
+  (and
+    (= (:x a) (:x b))
+    (= (:y a) (:y b))
+    (= (:z a) (:z b))))
+
 (defn distance [a b]
   "Euclidean distance between two coordinates."
   (let [dx (- (:x a) (:x b))
@@ -20,12 +27,9 @@
   Longer paths first so they are more likely to succeed."
   (- (compare (distance a1 b1) (distance a2 b2))))
 
-(defn equal? [a b]
-  "Are the two points equal?"
-  (and
-    (= (:x a) (:x b))
-    (= (:y a) (:y b))
-    (= (:z a) (:z b))))
+(defn adjecent? [a b]
+  "Returns true if the two points are adjecent."
+  (= (distance a b) 1.0))
 
 (defn step-to [dir point]
   "Calculate point with step taken in given direction."

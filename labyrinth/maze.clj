@@ -105,9 +105,18 @@
                  :errors errors}))
             {:grid test-grid :errors errors2}
             (rest (butlast path)))
-        ; TODO: check whether all two subsequent points in the path are adjecent
-        ]
-    {:grid test-grid2 :errors errors3}))
+        ; check whether all two subsequent points in the path are adjecent
+        errors4
+          (reduce
+            (fn [errors j]
+              (if-not (coordinate/adjecent? (nth path j) (nth path (inc j)))
+                (conj errors (str "Points " j " (" (nth path j) ") and "
+                  (inc j) "(" (nth path (inc j)) ") of path " i
+                  " are not adjecent"))
+                errors))
+            errors3
+            (range (dec (count path))))]
+    {:grid test-grid2 :errors errors4}))
 
 (defn check-paths [maze paths print?]
   "Check whether paths (single list of paths, each path is a list of points) are
