@@ -67,9 +67,7 @@ Options:                            (defaults)
         ; list of points)
         (println "Paths (per thread):" @paths-per-thread)
         (println "Elapsed time    = XXX seconds")
-        ; TOOD: print final grid?
-        (grid/print (:grid maze))
-        ; TODO: verification of paths
+        ; TODO: verification of paths, also prints grid
         ;(if (maze/check-paths maze paths)
         ;  (println "Verification passed.")
         ;  (println "Verification FAILED!"))

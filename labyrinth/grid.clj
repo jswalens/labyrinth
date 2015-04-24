@@ -50,10 +50,11 @@
   (assoc-in local-grid [:points (get-point-index local-grid point)] v))
 
 (defn print [grid]
+  "Print grid, used by maze/check-paths."
   (doseq [z (range (:depth grid))]
     (printf "[z = %d]\n" z)
     (doseq [x (range (:width grid))]
       (doseq [y (range (:height grid))]
-        (printf "%4s" @(grid/get-point grid (coordinate/alloc x y z))))
+        (printf "%4s" (grid/get-point grid (coordinate/alloc x y z))))
       (println))
     (println)))
