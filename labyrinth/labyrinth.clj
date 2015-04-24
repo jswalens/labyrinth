@@ -67,10 +67,10 @@ Options:                            (defaults)
         ; list of points)
         (println "Paths (per thread):" @paths-per-thread)
         (println "Elapsed time    = XXX seconds")
-        ; TODO: verification of paths, also prints grid
-        ;(if (maze/check-paths maze paths)
-        ;  (println "Verification passed.")
-        ;  (println "Verification FAILED!"))
-        ))))
+        ; verification of paths, also prints grid if asked to
+        (if (maze/check-paths maze (apply concat @paths-per-thread)
+              (:print params))
+          (println "Verification passed.")
+          (println "Verification FAILED!"))))))
 
 (main *command-line-args*)

@@ -1,7 +1,7 @@
 (ns grid
   (:require [coordinate]))
 
-(defn alloc [width height depth]
+(defn alloc-shared [width height depth]
   "Returns an empty shared grid of the requested size.
   Points are either :empty or :full.
 
@@ -12,8 +12,16 @@
    :depth  depth
    :points (vec (repeatedly (* width height depth) #(ref :empty)))})
 
+(defn alloc-local [width height depth]
+  "Returns an empty local grid of the requested size.
+  Points are either :empty or :full."
+  {:width  width
+   :height height
+   :depth  depth
+   :points (vec (repeat (* width height depth) :empty))})
+
 (defn copy [grid]
-  "Make a local grid, copying the given grid.
+  "Make a local grid, copying the given shared grid.
   It has the same structure as a normal grid, except that its points are NOT
   put in refs.
   Points will be :empty, :full, or filled with a number."
