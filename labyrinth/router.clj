@@ -119,7 +119,8 @@
          path         (list)]
     (let [current-point (:point current-step)]
       ; current point full in shared grid
-      ; TODO: wait, this is also done by grid/add-path in find-path!!
+      ; Note: in the C++ version, the local grid is set here, and the shared
+      ; grid is set in solve. We do one set, to the shared grid, here.
       (ref-set (grid/get-point shared-grid current-point) :full)
       (if (= (grid/get-point local-grid current-point) 0)
         ; current-point = source: we're done
@@ -128,7 +129,7 @@
         (if-let [next-step (find-cheapest-step shared-grid local-grid
                              current-step params)]
           (recur next-step (cons current-point path))
-          nil)))))
+          (log "traceback failed (cannot happen)"))))))
 
 (defn- find-work [queue]
   "In a transaction, pops element of queue and returns it, or returns nil
@@ -148,12 +149,7 @@
     (let [{reachable? :reachable local-grid :grid}
             (expand src dst (grid/copy shared-grid) params)]
       (if reachable?
-        (let [path (traceback shared-grid local-grid dst params)]
-          (if path
-            (do
-              (grid/add-path shared-grid path) ; update shared grid
-              path)
-            (log "traceback failed (cannot happen)")))
+        (traceback shared-grid local-grid dst params)
         (log "expansion failed")))))
 
 (defn solve [params maze paths-per-thread]
