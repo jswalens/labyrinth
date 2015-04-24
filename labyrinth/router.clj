@@ -34,12 +34,12 @@
         neighbors-to-expand
           (filter
             (fn [neighbor]
-              (let [nb-value (grid/get-point local-grid neighbor)]
+              (let [nb-current-value (grid/get-point local-grid neighbor)]
                 (and
-                  (not= nb-value :full)
+                  (not= nb-current-value :full)
                   (or
-                    (= nb-value :empty)
-                    (< (:value p) nb-value)))))
+                    (= nb-current-value :empty)
+                    (< (:value neighbor) nb-current-value)))))
             valid-neighbors)
         updated-grid
           (reduce
