@@ -13,48 +13,47 @@
 
 (defn- expand-point [local-grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
-  A neighbor is still to be expanded if it not filled yet, and either:
+  A neighbor is still to be expanded if it not full (i.e. a wall), and either:
   1. has no path to it yet (it is empty), or
   2. has a longer path to it (its current value > value of `point` + cost to go
      to it).
   This function returns {:grid updated-grid :new-points expanded-neighbors}"
   (let [{:keys [x-cost y-cost z-cost]}
           params
-        value
+        current-value
           (grid/get-point local-grid point)
         all-neighbors
-          [{:x (+ x 1) :y    y    :z    z    :cost x-cost}
-           {:x (- x 1) :y    y    :z    z    :cost x-cost}
-           {:x    x    :y (+ y 1) :z    z    :cost y-cost}
-           {:x    x    :y (- y 1) :z    z    :cost y-cost}
-           {:x    x    :y    y    :z (+ z 1) :cost z-cost}
-           {:x    x    :y    y    :z (- z 1) :cost z-cost}]
-        existing-neighbors
+          [{:x (+ x 1) :y    y    :z    z    :value (+ current-value x-cost)}
+           {:x (- x 1) :y    y    :z    z    :value (+ current-value x-cost)}
+           {:x    x    :y (+ y 1) :z    z    :value (+ current-value y-cost)}
+           {:x    x    :y (- y 1) :z    z    :value (+ current-value y-cost)}
+           {:x    x    :y    y    :z (+ z 1) :value (+ current-value z-cost)}
+           {:x    x    :y    y    :z (- z 1) :value (+ current-value z-cost)}]
+        valid-neighbors
           (filter #(grid/is-point-valid? local-grid %) all-neighbors)
         neighbors-to-expand
           (filter
-            (fn [p]
-              (and
-                (not= (grid/get-point local-grid p) :full)
-                (or
-                  (= (grid/get-point local-grid p) :empty)
-                  (<
-                    (+ value (:cost p))
-                    (grid/get-point local-grid p)))))
-            existing-neighbors)
+            (fn [neighbor]
+              (let [nb-value (grid/get-point local-grid neighbor)]
+                (and
+                  (not= nb-value :full)
+                  (or
+                    (= nb-value :empty)
+                    (< (:value p) nb-value)))))
+            valid-neighbors)
         updated-grid
           (reduce
-            (fn [local-grid p]
-              (grid/set-point local-grid p (+ value (:cost p))))
+            (fn [local-grid neighbor]
+              (grid/set-point local-grid neighbor (:value neighbor)))
             local-grid
             neighbors-to-expand)]
     {:grid updated-grid :new-points neighbors-to-expand}))
 
 (defn expand [src dst local-grid-initial params]
-  "Try to find a path from `src` to `dst` through `local-grid`.
+  "Try to find a path from `src` to `dst` through `local-grid-initial`.
   Returns `{:grid grid :reachable found}`, where `grid` is the updated grid and
   `found` is true if the destination was reached. (There might be multiple
-  paths from src to dst.)"
+  paths from src to dst in the grid.)"
   (log "src" src)
   (log "dst" dst)
   (loop [queue
@@ -64,12 +63,12 @@
           (-> local-grid-initial
             (grid/set-point src 0)        ; src = 0
             (grid/set-point dst :empty))] ; dst = empty
-    (log "queue" queue)
+    (log "expansion queue" queue)
     (if (empty? queue)
-      {:grid local-grid :reachable false}
+      {:grid local-grid :reachable false} ; no path
       (let [current (first queue)]
         (if (coordinate/equal? current dst)
-          {:grid local-grid :reachable true}
+          {:grid local-grid :reachable true} ; dst reached
           (let [{updated-grid :grid new-points :new-points}
                   (expand-point local-grid current params)]
             (recur
