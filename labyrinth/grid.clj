@@ -49,12 +49,6 @@
   be updated directly)."
   (assoc-in local-grid [:points (get-point-index local-grid point)] v))
 
-(defn add-path [grid points]
-  "For each point in `points`, mark location in `grid` as full."
-  (dosync
-    (doseq [p points]
-      (ref-set (get-point grid p) :full))))
-
 (defn print [grid]
   (doseq [z (range (:depth grid))]
     (printf "[z = %d]\n" z)
