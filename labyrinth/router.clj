@@ -88,29 +88,32 @@
           (if (and (grid/is-point-valid? shared-grid point)
                    (not (= (grid/get-point local-grid point) :empty))
                    (not (= @(grid/get-point shared-grid point) :full)))
-            (let [bending?  (not= dir (:direction current-step))
-                  b-cost    (if bending? bend-cost 0)
-                  cost      (+ (grid/get-point local-grid point) b-cost)]
+            (let [bending? (not= dir (:direction current-step))
+                  b-cost   (if bending? bend-cost 0)
+                  cost     (+ (grid/get-point local-grid point) b-cost)]
               {:step {:point point :direction dir} :cost cost})
             nil))))
-    (filter identity))) ; filter nil
+    (filter identity))) ; filter out nil
 
 (defn- find-cheapest-step [shared-grid local-grid current-step params]
   "Returns least costly step amongst possible next steps.
   A step is of the form `{:point next-point :direction dir}` where `next-point`
   is a neighbor of `current` and `dir` is e.g. `:x-pos`."
-  ; First, try with bend cost
-  (let [current  (grid/get-point local-grid (:point current-step))
-        steps    (next-steps shared-grid local-grid current-step (:bend-cost params))
-        cheapest (first (sort-by :cost steps))]
-    (if (<= (:cost cheapest) current)
+  ; first, try with bend cost
+  (let [current-val
+          (grid/get-point local-grid (:point current-step))
+        steps
+          (next-steps shared-grid local-grid current-step (:bend-cost params))
+        cheapest
+          (first (sort-by :cost steps))]
+    (if (<= (:cost cheapest) current-val)
       (:step cheapest)
-      ; If none found, try without bend cost
+      ; if none found, try without bend cost
       (let [steps    (next-steps shared-grid local-grid current-step 0)
             cheapest (first (sort-by :cost steps))]
-        (if (<= (:cost cheapest) current)
+        (if (<= (:cost cheapest) current-val)
           (:step cheapest)
-          (println "No cheap step found (cannot happen)."))))))
+          (println "no cheap step found (cannot happen)"))))))
 
 (defn traceback [shared-grid local-grid dst params]
   "Go back from dst to src, along an optimal path, and mark these cells as
