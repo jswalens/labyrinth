@@ -1,4 +1,5 @@
-(ns grid)
+(ns grid
+  (:require [coordinate]))
 
 (defn alloc [width height depth]
   "Returns an empty shared grid of the requested size.
@@ -53,3 +54,12 @@
   (dosync
     (doseq [p points]
       (ref-set (get-point grid p) :full))))
+
+(defn print [grid]
+  (doseq [z (range (:depth grid))]
+    (printf "[z = %d]\n" z)
+    (doseq [x (range (:width grid))]
+      (doseq [y (range (:height grid))]
+        (printf "%4s" @(grid/get-point grid (coordinate/alloc x y z))))
+      (println))
+    (println)))
