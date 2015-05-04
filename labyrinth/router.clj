@@ -75,7 +75,7 @@
               (vec (concat (rest queue) new-points))
               updated-grid)))))))
 
-(defn- next-steps [shared-grid local-grid current-step bend-cost]
+(defn- next-steps [local-grid current-step bend-cost]
   "All possible next steps after the current one, and their cost.
   Returns list of elements of the format:
   `{:step {:point next-point :direction dir} :cost 123}`"
@@ -84,9 +84,9 @@
     (map
       (fn [dir]
         (let [point (coordinate/step-to dir (:point current-step))]
-          (if (and (grid/is-point-valid? shared-grid point)
+          (if (and (grid/is-point-valid? local-grid point)
                    (not (= (grid/get-point local-grid point) :empty))
-                   (not (= @(grid/get-point shared-grid point) :full)))
+                   (not (= (grid/get-point local-grid point) :full)))
             (let [bending? (not= dir (:direction current-step))
                   b-cost   (if bending? bend-cost 0)
                   cost     (+ (grid/get-point local-grid point) b-cost)]
@@ -94,7 +94,7 @@
             nil))))
     (filter identity))) ; filter out nil
 
-(defn- find-cheapest-step [shared-grid local-grid current-step params]
+(defn- find-cheapest-step [local-grid current-step params]
   "Returns least costly step amongst possible next steps.
   A step is of the form `{:point next-point :direction dir}` where `next-point`
   is a neighbor of `current` and `dir` is e.g. `:x-pos`."
@@ -102,35 +102,32 @@
   (let [current-val
           (grid/get-point local-grid (:point current-step))
         steps
-          (next-steps shared-grid local-grid current-step (:bend-cost params))
+          (next-steps local-grid current-step (:bend-cost params))
         cheapest
           (first (sort-by :cost steps))]
     (if (and (not (empty? steps)) (<= (:cost cheapest) current-val))
       (:step cheapest)
       ; if none found, try without bend cost
-      (let [steps    (next-steps shared-grid local-grid current-step 0)
+      (let [steps    (next-steps local-grid current-step 0)
             cheapest (first (sort-by :cost steps))]
         (if (and (not (empty? steps)) (<= (:cost cheapest) current-val))
           (:step cheapest)
           (println "no cheap step found"))))))
 
-(defn traceback [shared-grid local-grid dst params]
+(defn traceback [local-grid dst params]
   "Go back from dst to src, along an optimal path, and mark these cells as
-  filled in the shared and local grid. "
+  filled in the local grid. "
   (loop [current-step {:point dst :direction :zero}
+         grid         local-grid
          path         (list)]
     (let [current-point (:point current-step)]
-      ; current point full in shared grid
-      ; Note: in the C++ version, the local grid is set here, and the shared
-      ; grid is set in solve. We do one set, to the shared grid, here.
-      (ref-set (grid/get-point shared-grid current-point) :full)
       (if (= (grid/get-point local-grid current-point) 0)
         ; current-point = source: we're done
         (cons current-point path)
         ; find next point along cheapest step
-        (if-let [next-step (find-cheapest-step shared-grid local-grid
-                             current-step params)]
-          (recur next-step (cons current-point path))
+        (if-let [next-step (find-cheapest-step local-grid current-step params)]
+          (recur next-step (grid/set-point local-grid current-point :full)
+            (cons current-point path))
           (log "traceback failed"))))))
 
 (defn- find-work [queue]
@@ -151,7 +148,7 @@
     (let [{reachable? :reachable local-grid :grid}
             (expand src dst (grid/copy shared-grid) params)]
       (if reachable?
-        (traceback shared-grid local-grid dst params)
+        (traceback local-grid dst params)
         (log "expansion failed")))))
 
 (defn solve [params maze paths-per-thread]
@@ -163,7 +160,9 @@
               (let [path (find-path work (:grid maze) params)] ; find-path = tx
                 (log "found path" path)
                 (if path
-                  (recur (conj my-paths path))
+                  (do
+                    (grid/add-path (:grid maze) path)
+                    (recur (conj my-paths path)))
                   (recur my-paths)))
               my-paths))]
     ; add found paths to shared list of list of paths
