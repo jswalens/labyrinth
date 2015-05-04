@@ -27,8 +27,8 @@
   Longer paths first so they are more likely to succeed."
   (- (compare (distance a1 b1) (distance a2 b2))))
 
-(defn adjecent? [a b]
-  "Returns true if the two points are adjecent."
+(defn adjacent? [a b]
+  "Returns true if the two points are adjacent."
   (= (distance a b) 1.0))
 
 (defn step-to [dir point]

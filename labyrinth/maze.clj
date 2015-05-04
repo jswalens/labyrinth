@@ -106,14 +106,14 @@
                  :errors errors}))
             {:grid test-grid :errors errors2}
             (rest (butlast path)))
-        ; check whether all two subsequent points in the path are adjecent
+        ; check whether all two subsequent points in the path are adjacent
         errors4
           (reduce
             (fn [errors j]
-              (if-not (coordinate/adjecent? (nth path j) (nth path (inc j)))
+              (if-not (coordinate/adjacent? (nth path j) (nth path (inc j)))
                 (conj errors (str "Points " j " (" (nth path j) ") and "
                   (inc j) " (" (nth path (inc j)) ") of path " i
-                  " are not adjecent"))
+                  " are not adjacent"))
                 errors))
             errors3
             (range (dec (count path))))]
