@@ -25,28 +25,40 @@ Options:                            (defaults)
     z <UINT>   [z] movement cost    (2)")
 
 (defn parse-args [args]
-  "Parse the arguments.
-  Will return strange results or throw exceptions on invalid input."
-  ; Not very nice code, but should work.
-  (reduce
-    (fn [res arg]
-      (if (.startsWith arg "-")
-        ; Trick: for parameter names (e.g. -i), we return a function. In the
-        ; next iteration, this will be filled in by calling this function with
-        ; the parameter value.
-        (case (.substring arg 1)
-          "b" #(assoc res :bend-cost %)
-          "t" #(assoc res :n-threads %)
-          "x" #(assoc res :x-cost %)
-          "y" #(assoc res :y-cost %)
-          "z" #(assoc res :z-cost %)
-          "i" #(assoc res :input-file %)
-          "p" (assoc res :print true)
-              (assoc res :arg-error true))
-        ; Call previous result, assuming its a function that sets the right
-        ; parameter.
-        (res arg)))
-    default-params args))
+  "Parse the arguments."
+  (let [process-argument-name
+         (fn [res arg]
+            (if (map? res)
+              ; Trick: for parameter names that expect a value (e.g. -i), we
+              ; return a function. In the next iteration, this will be filled in
+              ; by calling it with the parameter value.
+              (case (.substring arg 1)
+                "b" #(assoc res :bend-cost %)
+                "t" #(assoc res :n-threads %)
+                "x" #(assoc res :x-cost %)
+                "y" #(assoc res :y-cost %)
+                "z" #(assoc res :z-cost %)
+                "i" #(assoc res :input-file %)
+                "p" (assoc res :print true)
+                    (assoc res :arg-error true))
+              (assoc default-params :arg-error true)))
+        process-argument-value
+          (fn [res arg]
+            ; Call previous result, assuming it's a function that sets the
+            ; right parameter. Otherwise ignore and indicate error.
+            (if (fn? res)
+              (res arg)
+              (assoc res :arg-error true)))
+        result
+          (reduce
+            (fn [res arg]
+              (if (.startsWith arg "-")
+                (process-argument-name res arg)
+                (process-argument-value res arg)))
+            default-params args)]
+      (if (map? result)
+        result
+        (assoc default-params :arg-error true))))
 
 (defn main [args]
   "Main function. `args` should be a list of command line arguments."
