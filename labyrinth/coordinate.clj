@@ -2,8 +2,9 @@
 
 (defn alloc [x y z]
   "Returns a new coordinate.
-  In the C++ version, this does allocations; in Clojure we don't actually really
-  need this."
+
+  In the C++ version, this does an allocation; in Clojure we don't actually
+  really need this function."
   {:x x
    :y y
    :z z})
@@ -23,8 +24,7 @@
     (Math/sqrt (+ (* dx dx) (* dy dy) (* dz dz)))))
 
 (defn compare-pairs [[a1 b1] [a2 b2]]
-  "Compare two coordinate pairs, by their distance.
-  Longer paths first so they are more likely to succeed."
+  "Compare two coordinate pairs, by their distance."
   (- (compare (distance a1 b1) (distance a2 b2))))
 
 (defn adjacent? [a b]
