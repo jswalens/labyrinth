@@ -105,14 +105,14 @@
           (next-steps shared-grid local-grid current-step (:bend-cost params))
         cheapest
           (first (sort-by :cost steps))]
-    (if (<= (:cost cheapest) current-val)
+    (if (and (not (empty? steps)) (<= (:cost cheapest) current-val))
       (:step cheapest)
       ; if none found, try without bend cost
       (let [steps    (next-steps shared-grid local-grid current-step 0)
             cheapest (first (sort-by :cost steps))]
-        (if (<= (:cost cheapest) current-val)
+        (if (and (not (empty? steps)) (<= (:cost cheapest) current-val))
           (:step cheapest)
-          (println "no cheap step found (cannot happen)"))))))
+          (println "no cheap step found"))))))
 
 (defn traceback [shared-grid local-grid dst params]
   "Go back from dst to src, along an optimal path, and mark these cells as
@@ -131,7 +131,7 @@
         (if-let [next-step (find-cheapest-step shared-grid local-grid
                              current-step params)]
           (recur next-step (cons current-point path))
-          (log "traceback failed (cannot happen)"))))))
+          (log "traceback failed"))))))
 
 (defn- find-work [queue]
   "In a transaction, pops element of queue and returns it, or returns nil
