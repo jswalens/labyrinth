@@ -69,11 +69,15 @@
   "Reads the given file and returns the maze it contains."
   (let [in   (read-input-file input-file-name)
         work (to-list (sort-by identity coordinate/compare-pairs
-               (:work-list in)))]
+               (:work-list in)))
+        grid (grid/alloc-shared (:width in) (:height in) (:depth in))]
+    (dosync ; Indicate walls, srcs, and dsts as full.
+      (doseq [pt (concat (:walls in) (:srcs in) (:dsts in))]
+        (ref-set (grid/get-point grid pt) :full)))
     (println "Maze dimensions =" (:width in) "x" (:height in) "x" (:depth in))
     (println "Paths to route  =" (count work))
     (maze/alloc
-      (grid/alloc-shared (:width in) (:height in) (:depth in))
+      grid
       work
       (:walls in)
       (:srcs in)
