@@ -155,7 +155,7 @@
             ; its index
             (reduce
               (fn [{test-grid :grid errors :errors} [i path]]
-                (check-path test-grid (inc i) path errors))
+                (check-path test-grid i path errors))
               $
               (map-indexed (fn [i p] [(inc i) p]) paths)))]
     (when-not (empty? errors)
