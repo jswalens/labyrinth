@@ -1,5 +1,6 @@
 (ns router
-  (:require [coordinate]))
+  (:require [coordinate])
+  (:import [java.io StringWriter]))
 
 ; Note: C++ function router_alloc is not needed, we just pass the parameters
 ; directly.
@@ -176,3 +177,10 @@
     ; a shared variable in this manner.
     (dosync
       (alter paths-per-thread conj my-paths))))
+
+;(defn solve-with-serial-printing [p m ps]
+;  (let [writer (StringWriter.)
+;        result (binding [*out* writer]
+;                 (solve p m ps))]
+;    (println (.toString writer))
+;    result))
