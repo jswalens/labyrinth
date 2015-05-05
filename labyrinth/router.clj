@@ -134,13 +134,15 @@
 (defn- find-work [queue]
   "In a transaction, pops element of queue and returns it, or returns nil
   if queue is empty."
-  (dosync
-    (if (empty? @queue)
-      nil
-      (let [top (first @queue)]
-        (log "found work" top)
-        (alter queue pop)
-        top))))
+  (let [work
+          (dosync
+            (if (empty? @queue)
+              nil
+              (let [top (first @queue)]
+                (alter queue pop)
+                top)))]
+    (log "found work" work)
+    work))
 
 (defn- find-path [[src dst] shared-grid params]
   "Tries to find a path. Returns path if one was found, nil otherwise.
