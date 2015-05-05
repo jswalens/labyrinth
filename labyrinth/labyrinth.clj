@@ -105,6 +105,7 @@ Options:                            (defaults)
         (if (maze/check-paths maze (apply concat @paths-per-thread)
               (:print params))
           (println "Verification passed.")
-          (println "Verification FAILED!"))))))
+          (println "Verification FAILED!"))
+        (shutdown-agents)))))
 
 (main *command-line-args*)
