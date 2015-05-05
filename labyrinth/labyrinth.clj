@@ -24,6 +24,8 @@ Options:                            (defaults)
     y <UINT>   [y] movement cost    (1)
     z <UINT>   [z] movement cost    (2)")
 
+(def log println)
+
 (defn parse-args [args]
   "Parse the arguments."
   (let [process-argument-name
@@ -69,17 +71,17 @@ Options:                            (defaults)
           (println usage))
       (let [maze             (maze/read (:input-file params))
             paths-per-thread (ref [])]
-        (println maze)
+        (log maze)
         ; TODO: in new thread(s), and time this!
         (time (router/solve params maze paths-per-thread))
         ; Once everything is done
-        (println "Paths routed    =" (count (apply concat @paths-per-thread)))
+        (log "Paths (per thread):" @paths-per-thread)
+        (println "Paths routed    =" (reduce + (map count @paths-per-thread)))
+        (println "Elapsed time    = TODO seconds")
+        ; verification of paths, also prints grid if asked to
         ; Note: (apply concat ...) flattens once, i.e. it turns the list of
         ; list of paths into a single list of paths (but each path is still a
         ; list of points)
-        (println "Paths (per thread):" @paths-per-thread)
-        (println "Elapsed time    = XXX seconds")
-        ; verification of paths, also prints grid if asked to
         (if (maze/check-paths maze (apply concat @paths-per-thread)
               (:print params))
           (println "Verification passed.")

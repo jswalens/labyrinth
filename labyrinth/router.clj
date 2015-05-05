@@ -1,7 +1,8 @@
 (ns router
   (:require [coordinate]))
 
-; Not needed
+; Note: C++ function router_alloc is not needed, we just pass the parameters
+; directly.
 ;(defn alloc [x-cost y-cost z-cost bend-cost]
 ;  "Returns a list of router paramaters."
 ;  {:x-cost    x-cost
