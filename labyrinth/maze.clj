@@ -138,7 +138,12 @@
           (as->
             {:grid test-grid :errors []}
             $
-            ; TODO: mark walls
+            ; mark walls
+            (reduce
+              (fn [{test-grid :grid errors :errors} wall-pt]
+                {:grid (grid/set-point test-grid wall-pt :full) :errors errors})
+              $
+              (:walls maze))
             ; mark sources
             (reduce
               (fn [{test-grid :grid errors :errors} src]
