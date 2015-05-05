@@ -113,7 +113,7 @@
             cheapest (first (sort-by :cost steps))]
         (if (and (not (empty? steps)) (<= (:cost cheapest) current-val))
           (:step cheapest)
-          (println "no cheap step found"))))))
+          (log "no cheap step found"))))))
 
 (defn traceback [local-grid dst params]
   "Go back from dst to src, along an optimal path, and mark these cells as

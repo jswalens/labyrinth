@@ -159,6 +159,6 @@
     (when-not (empty? errors)
       (println "Some errors occured:")
       (doseq [e errors] (println "* " e)))
-    ; TODO: print paths
-    grid-with-paths
+    (if print?
+      (grid/print grid-with-paths))
     (empty? errors)))
