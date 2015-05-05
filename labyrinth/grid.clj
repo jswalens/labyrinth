@@ -79,6 +79,8 @@
   (case val
     :empty "  . "
     :full  "  X "
+    :src   "  S "
+    :dst   "  D "
            (format "%3s " val)))
 
 (defn print [grid]

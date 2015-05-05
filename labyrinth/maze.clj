@@ -80,16 +80,17 @@
       (:dsts in))))
 
 (defn- check-path [test-grid i path errors]
-  "Checks whether the given path is correct. Updates errors if it isn't."
+  "Checks whether the given path is correct, and marks it with `i`.
+  Updates errors if it isn't."
   (let [; check whether start = src
         errors1
-          (if (not= (grid/get-point test-grid (first path)) 0)
+          (if (not= (grid/get-point test-grid (first path)) :src)
             (conj errors (str "start of path " i " is not a source (but "
               (grid/get-point test-grid (first path)) ")"))
             errors)
         ; check whether end = dst
         errors2
-          (if (not= (grid/get-point test-grid (last path)) 0)
+          (if (not= (grid/get-point test-grid (last path)) :dst)
             (conj errors1 (str "end of path " i " is not a destination (but "
               (grid/get-point test-grid (last path)) ")"))
             errors1)
@@ -132,28 +133,29 @@
           (as->
             {:grid test-grid :errors []}
             $
-            ; mark walls
+            ; mark walls as :full
             (reduce
               (fn [{test-grid :grid errors :errors} wall-pt]
-                {:grid (grid/set-point test-grid wall-pt :full) :errors errors})
+                {:grid (grid/set-point test-grid wall-pt :wall) :errors errors})
               $
               (:walls maze))
-            ; mark sources
+            ; mark sources as :full
             (reduce
               (fn [{test-grid :grid errors :errors} src]
-                {:grid (grid/set-point test-grid src 0) :errors errors})
+                {:grid (grid/set-point test-grid src :src) :errors errors})
               $
               (:src-vector maze))
-            ; mark destinations
+            ; mark destinations as :full
             (reduce
               (fn [{test-grid :grid errors :errors} dst]
-                {:grid (grid/set-point test-grid dst 0) :errors errors})
+                {:grid (grid/set-point test-grid dst :dst) :errors errors})
               $
               (:dst-vector maze))
-            ; make sure path is contiguous and does not overlap
+            ; make sure path is contiguous and does not overlap, mark it with
+            ; its index
             (reduce
               (fn [{test-grid :grid errors :errors} [i path]]
-                (check-path test-grid i path errors))
+                (check-path test-grid (inc i) path errors))
               $
               (map-indexed (fn [i p] [(inc i) p]) paths)))]
     (when-not (empty? errors)
