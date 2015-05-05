@@ -4,15 +4,17 @@
 
 (defn alloc [grid work-queue walls srcs dsts]
   "Returns a maze based on the given parameters.
-  In the C++ version, this does allocations; in Clojure we don't actually really
-  need this."
+
+  In the C++ version, this does allocations; in Clojure we don't do this."
   {:grid        grid
    :work-queue  (ref work-queue) ; list, not vector!
    :wall-vector walls
    :src-vector  srcs
    :dst-vector  dsts})
 
-(defn- string->int [s]
+; Note: C++ function addToGrid is embedded directly in read, where it is used.
+
+(defn- str->int [s]
   "Converts s to integer, returns nil in case of error"
   (try
     (Integer/parseInt s)
@@ -30,7 +32,7 @@
       (let [[code x1_ y1_ z1_ x2_ y2_ z2_]
               (clojure.string/split l #" +")
             [x1 y1 z1 x2 y2 z2]
-              (map string->int [x1_ y1_ z1_ x2_ y2_ z2_])]
+              (map str->int [x1_ y1_ z1_ x2_ y2_ z2_])]
         (case code
           "" ; empty line: ignore
             res
