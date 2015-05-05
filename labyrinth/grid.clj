@@ -75,12 +75,19 @@
     (doseq [point path]
       (ref-set (get-point grid point) :full))))
 
+(defn- print-point [val]
+  (case val
+    :empty "  . "
+    :full  "  X "
+           (format "%3s " val)))
+
 (defn print [grid]
   "Print grid, used by maze/check-paths."
   (doseq [z (range (:depth grid))]
     (printf "[z = %d]\n" z)
     (doseq [x (range (:width grid))]
       (doseq [y (range (:height grid))]
-        (printf "%4s" (grid/get-point grid (coordinate/alloc x y z))))
+        (clojure.core/print (print-point
+          (grid/get-point grid (coordinate/alloc x y z)))))
       (println))
     (println)))
