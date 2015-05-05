@@ -151,7 +151,10 @@
     (let [{reachable? :reachable local-grid :grid}
             (expand src dst (grid/copy shared-grid) params)]
       (if reachable?
-        (traceback local-grid dst params)
+        (let [path (traceback local-grid dst params)]
+          (when path
+            (grid/add-path shared-grid path)) ; may fail and cause rollback
+          path)
         (log "expansion failed")))))
 
 (defn solve [params maze paths-per-thread]
@@ -163,9 +166,7 @@
               (let [path (find-path work (:grid maze) params)] ; find-path = tx
                 (log "found path" path)
                 (if path
-                  (do
-                    (grid/add-path (:grid maze) path)
-                    (recur (conj my-paths path)))
+                  (recur (conj my-paths path))
                   (recur my-paths)))
               my-paths))]
     ; add found paths to shared list of list of paths
