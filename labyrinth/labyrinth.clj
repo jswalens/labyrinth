@@ -87,9 +87,11 @@ Options:                            (defaults)
             results
               (time ; time everything
                 (doall
-                  (for [i (range (:n-threads params))]
-                    (time ; timer per thread
-                      (router/solve params maze paths-per-thread)))))]
+                  (pmap
+                    (fn [_]
+                      (time ; timer per thread
+                        (router/solve params maze paths-per-thread)))
+                    (range (:n-threads params)))))]
         (log "Paths (per thread):" @paths-per-thread)
         (println "Paths routed    =" (reduce + (map count @paths-per-thread)))
         (println "Elapsed time    =" (:time results) "milliseconds")
