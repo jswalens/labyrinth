@@ -1,6 +1,7 @@
 (ns labyrinth
   (:require [maze]
-            [router]))
+            [router]
+            [util :refer [str->int]]))
 
 (def default-params
   {:bend-cost  1
@@ -35,11 +36,11 @@ Options:                            (defaults)
               ; return a function. In the next iteration, this will be filled in
               ; by calling it with the parameter value.
               (case (.substring arg 1)
-                "b" #(assoc res :bend-cost %)
-                "t" #(assoc res :n-threads %)
-                "x" #(assoc res :x-cost %)
-                "y" #(assoc res :y-cost %)
-                "z" #(assoc res :z-cost %)
+                "b" #(assoc res :bend-cost (str->int %))
+                "t" #(assoc res :n-threads (str->int %))
+                "x" #(assoc res :x-cost (str->int %))
+                "y" #(assoc res :y-cost (str->int %))
+                "z" #(assoc res :z-cost (str->int %))
                 "i" #(assoc res :input-file %)
                 "p" (assoc res :print true)
                     (assoc res :arg-error true))
@@ -62,6 +63,14 @@ Options:                            (defaults)
         result
         (assoc default-params :arg-error true))))
 
+(defmacro time [expr]
+  "Based on Clojure's time, but returns {:time time :result value},
+  instead of printing to *out*."
+  `(let [start# (. System (nanoTime))
+         ret#   ~expr
+         time#  (/ (double (- (. System (nanoTime)) start#)) 1000000.0)]
+     {:time time# :result ret#}))
+
 (defn main [args]
   "Main function. `args` should be a list of command line arguments."
   (let [params (parse-args args)]
@@ -69,15 +78,24 @@ Options:                            (defaults)
       (do (println "Error parsing arguments")
           (println "Params:" params)
           (println usage))
-      (let [maze             (maze/read (:input-file params))
-            paths-per-thread (ref [])]
-        (log maze)
-        ; TODO: in new thread(s), and time this!
-        (time (router/solve params maze paths-per-thread))
-        ; Once everything is done
+      (let [maze
+              (maze/read (:input-file params))
+            _
+              (log maze)
+            paths-per-thread
+              (ref [])
+            results
+              (time ; time everything
+                (doall
+                  (for [i (range (:n-threads params))]
+                    (time ; timer per thread
+                      (router/solve params maze paths-per-thread)))))]
         (log "Paths (per thread):" @paths-per-thread)
         (println "Paths routed    =" (reduce + (map count @paths-per-thread)))
-        (println "Elapsed time    = TODO seconds")
+        (println "Elapsed time    =" (:time results) "milliseconds")
+        (println "Time per thread:")
+        (doseq [t (:result results)]
+          (println " " (:time t) "milliseconds"))
         ; verification of paths, also prints grid if asked to
         ; Note: (apply concat ...) flattens once, i.e. it turns the list of
         ; list of paths into a single list of paths (but each path is still a

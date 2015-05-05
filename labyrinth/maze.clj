@@ -1,6 +1,7 @@
 (ns maze
   (:require [grid]
-            [coordinate]))
+            [coordinate]
+            [util :refer [str->int]]))
 
 (defn alloc [grid work-queue walls srcs dsts]
   "Returns a maze based on the given parameters.
@@ -13,13 +14,6 @@
    :dst-vector  dsts})
 
 ; Note: C++ function addToGrid is embedded directly in read, where it is used.
-
-(defn- str->int [s]
-  "Converts s to integer, returns nil in case of error"
-  (try
-    (Integer/parseInt s)
-    (catch NumberFormatException e
-      nil)))
 
 (defn- read-input-file [input-file-name]
   "Reads the input file, returns map with keys
