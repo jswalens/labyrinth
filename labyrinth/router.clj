@@ -11,7 +11,8 @@
 ;   :z-cost    z-cost
 ;   :bend-cost bend-cost})
 
-(def log println)
+;(def log println)
+(defn log [& _] nil)
 
 (defn- expand-point [local-grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
