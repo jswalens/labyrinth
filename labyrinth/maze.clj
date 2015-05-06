@@ -22,7 +22,6 @@
   (reduce
     ; For each line l, updates the result map.
     (fn [res l]
-      (println l)
       (let [[code x1_ y1_ z1_ x2_ y2_ z2_]
               (clojure.string/split l #" +")
             [x1 y1 z1 x2 y2 z2]

@@ -80,8 +80,6 @@ Options:                            (defaults)
           (println usage))
       (let [maze
               (maze/read (:input-file params))
-            _
-              (log maze)
             paths-per-thread
               (ref [])
             results
