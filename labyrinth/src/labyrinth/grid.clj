@@ -69,6 +69,10 @@
   be updated directly)."
   (assoc-in local-grid [:points (get-point-index local-grid point)] v))
 
+(defn grid-map [grid f]
+  "Map over points in grid, call (fn p) for each point."
+  (update-in grid [:points] (fn [points] (map f points))))
+
 (defn add-path [grid path]
   "Set all points in `path` as full. Only works on shared grid."
   (dosync
