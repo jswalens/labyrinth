@@ -81,15 +81,19 @@
 (defn- check-path [test-grid i path errors]
   "Checks whether the given path is correct, and marks it with `i`.
   Updates errors if it isn't."
-  (let [; check whether start = src
+  (let [src-or-dst?  ; is p src or dst?
+          (fn [p] (or (= p :src) (= p :dst)))
+        ; check whether start = src or dst (a point can be both a src of one
+        ; path and dst of other)
         errors1
-          (if (not= (grid/get-point test-grid (first path)) :src)
+          (if (not (src-or-dst? (grid/get-point test-grid (first path))))
             (conj errors (str "start of path " i " is not a source (but "
               (grid/get-point test-grid (first path)) ")"))
             errors)
-        ; check whether end = dst
+        ; check whether end = src or dst (a point can be both a src of one
+              ; path and dst of other)
         errors2
-          (if (not= (grid/get-point test-grid (last path)) :dst)
+          (if (not (src-or-dst? (grid/get-point test-grid (last path))))
             (conj errors1 (str "end of path " i " is not a destination (but "
               (grid/get-point test-grid (last path)) ")"))
             errors1)
