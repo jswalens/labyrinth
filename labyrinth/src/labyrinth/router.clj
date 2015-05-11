@@ -1,7 +1,7 @@
 (ns labyrinth.router
   (:require [labyrinth.coordinate :as coordinate]
             [labyrinth.grid :as grid]
-            [taoensso.timbre.profiling :refer [defnp]])
+            [taoensso.timbre.profiling :refer [defnp p]])
   (:import [java.io StringWriter]))
 
 ; Note: C++ function router_alloc is not needed, we just pass the parameters
@@ -77,7 +77,7 @@
           (let [{updated-grid :grid new-points :new-points}
                   (expand-point local-grid current params)]
             (recur
-              (vec (concat (rest queue) new-points))
+              (p :vec (vec (p :concat (concat (rest queue) new-points))))
               updated-grid)))))))
 
 (defnp next-steps [local-grid current-step bend-cost]
