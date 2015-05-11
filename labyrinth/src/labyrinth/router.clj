@@ -1,6 +1,7 @@
 (ns labyrinth.router
   (:require [labyrinth.coordinate :as coordinate]
-            [labyrinth.grid :as grid])
+            [labyrinth.grid :as grid]
+            [taoensso.timbre.profiling :refer [defnp]])
   (:import [java.io StringWriter]))
 
 ; Note: C++ function router_alloc is not needed, we just pass the parameters
@@ -15,7 +16,7 @@
 ;(def log println)
 (defn log [& _] nil)
 
-(defn- expand-point [local-grid {x :x y :y z :z :as point} params]
+(defnp expand-point [local-grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
   A neighbor is still to be expanded if it not full (i.e. a wall), and either:
   1. has no path to it yet (it is empty), or
@@ -53,7 +54,7 @@
             neighbors-to-expand)]
     {:grid updated-grid :new-points neighbors-to-expand}))
 
-(defn expand [src dst local-grid-initial params]
+(defnp expand [src dst local-grid-initial params]
   "Try to find a path from `src` to `dst` through `local-grid-initial`.
   Returns `{:grid grid :reachable found}`, where `grid` is the updated grid and
   `found` is true if the destination was reached. (There might be multiple
@@ -79,7 +80,7 @@
               (vec (concat (rest queue) new-points))
               updated-grid)))))))
 
-(defn- next-steps [local-grid current-step bend-cost]
+(defnp next-steps [local-grid current-step bend-cost]
   "All possible next steps after the current one, and their cost.
   Returns list of elements of the format:
   `{:step {:point next-point :direction dir} :cost 123}`"
@@ -98,7 +99,7 @@
             nil))))
     (filter identity))) ; filter out nil
 
-(defn- find-cheapest-step [local-grid current-step params]
+(defnp find-cheapest-step [local-grid current-step params]
   "Returns least costly step amongst possible next steps.
   A step is of the form `{:point next-point :direction dir}` where `next-point`
   is a neighbor of `current` and `dir` is e.g. `:x-pos`."
@@ -118,7 +119,7 @@
           (:step cheapest)
           (log "no cheap step found"))))))
 
-(defn traceback [local-grid dst params]
+(defnp traceback [local-grid dst params]
   "Go back from dst to src, along an optimal path, and mark these cells as
   filled in the local grid. "
   (loop [current-step {:point dst :direction :zero}
@@ -134,7 +135,7 @@
             (cons current-point path))
           (log "traceback failed"))))))
 
-(defn- find-work [queue]
+(defnp find-work [queue]
   "In a transaction, pops element of queue and returns it, or returns nil
   if queue is empty."
   (let [work
@@ -147,7 +148,7 @@
     (log "found work" work)
     work))
 
-(defn- find-path [[src dst] shared-grid params]
+(defnp find-path [[src dst] shared-grid params]
   "Tries to find a path. Returns path if one was found, nil otherwise.
   A path is a vector of points."
   (dosync
@@ -160,7 +161,7 @@
           path)
         (log "expansion failed")))))
 
-(defn solve [params maze paths-per-thread]
+(defnp solve [params maze paths-per-thread]
   "Solve maze, append found paths to `paths-per-thread`."
   (let [my-paths
           ; find paths until no work left

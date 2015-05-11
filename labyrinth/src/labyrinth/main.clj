@@ -2,7 +2,8 @@
   (:gen-class)
   (:require [labyrinth.maze :as maze]
             [labyrinth.router :as router]
-            [labyrinth.util :refer [str->int]]))
+            [labyrinth.util :refer [str->int]]
+            [taoensso.timbre.profiling :refer [profile]]))
 
 (def default-params
   {:bend-cost  1
@@ -85,13 +86,14 @@ Options:                            (defaults)
               (ref [])
             results
               (time ; time everything
-                (doall
-                  (pmap
-                    (fn [_]
-                      (time ; timer per thread
-                        (router/solve params maze paths-per-thread)))
-                    (range (:n-threads params)))))]
-        (log "Paths (per thread):" @paths-per-thread)
+                (profile :info :all
+                  (doall
+                    (pmap
+                      (fn [_]
+                        (time ; timer per thread
+                          (router/solve params maze paths-per-thread)))
+                      (range (:n-threads params))))))]
+        ;(log "Paths (per thread):" @paths-per-thread)
         (println "Paths routed    =" (reduce + (map count @paths-per-thread)))
         (println "Elapsed time    =" (:time results) "milliseconds")
         (println "Time per thread:")
