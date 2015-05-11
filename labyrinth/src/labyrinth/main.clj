@@ -1,7 +1,8 @@
-(ns labyrinth
-  (:require [maze]
-            [router]
-            [util :refer [str->int]]))
+(ns labyrinth.main
+  (:gen-class)
+  (:require [labyrinth.maze :as maze]
+            [labyrinth.router :as router]
+            [labyrinth.util :refer [str->int]]))
 
 (def default-params
   {:bend-cost  1
@@ -71,7 +72,7 @@ Options:                            (defaults)
          time#  (/ (double (- (. System (nanoTime)) start#)) 1000000.0)]
      {:time time# :result ret#}))
 
-(defn main [args]
+(defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
   (let [params (parse-args args)]
     (if (or (:arg-error params) (nil? params))
@@ -106,4 +107,5 @@ Options:                            (defaults)
           (println "Verification FAILED!"))
         (shutdown-agents)))))
 
-(main *command-line-args*)
+; To run manually:
+;(main *command-line-args*)

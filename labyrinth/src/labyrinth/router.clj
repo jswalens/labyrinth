@@ -1,5 +1,6 @@
-(ns router
-  (:require [coordinate])
+(ns labyrinth.router
+  (:require [labyrinth.coordinate :as coordinate]
+            [labyrinth.grid :as grid])
   (:import [java.io StringWriter]))
 
 ; Note: C++ function router_alloc is not needed, we just pass the parameters

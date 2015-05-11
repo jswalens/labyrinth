@@ -1,5 +1,5 @@
-(ns grid
-  (:require [coordinate]))
+(ns labyrinth.grid
+  (:require [labyrinth.coordinate :as coordinate]))
 
 (defn alloc-shared [width height depth]
   "Returns an empty shared grid of the requested size.
@@ -90,6 +90,6 @@
     (doseq [x (range (:width grid))]
       (doseq [y (range (:height grid))]
         (clojure.core/print (print-point
-          (grid/get-point grid (coordinate/alloc x y z)))))
+          (get-point grid (coordinate/alloc x y z)))))
       (println))
     (println)))

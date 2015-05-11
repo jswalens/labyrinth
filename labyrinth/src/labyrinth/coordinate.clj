@@ -1,4 +1,4 @@
-(ns coordinate)
+(ns labyrinth.coordinate)
 
 (defn alloc [x y z]
   "Returns a new coordinate.

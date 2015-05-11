@@ -1,7 +1,7 @@
-(ns maze
-  (:require [grid]
-            [coordinate]
-            [util :refer [str->int]]))
+(ns labyrinth.maze
+  (:require [labyrinth.grid :as grid]
+            [labyrinth.coordinate :as coordinate]
+            [labyrinth.util :refer [str->int]]))
 
 (defn alloc [grid work-queue walls srcs dsts]
   "Returns a maze based on the given parameters.
@@ -71,7 +71,7 @@
         (ref-set (grid/get-point grid pt) :full)))
     (println "Maze dimensions =" (:width in) "x" (:height in) "x" (:depth in))
     (println "Paths to route  =" (count work))
-    (maze/alloc
+    (alloc
       grid
       work
       (:walls in)
