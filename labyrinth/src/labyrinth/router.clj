@@ -63,7 +63,7 @@
   (log "dst" dst)
   (loop [queue
           ; start at source
-          [src]
+          (list src)
         local-grid
           (-> local-grid-initial
             (grid/set-point src 0)        ; src = 0
@@ -77,7 +77,7 @@
           (let [{updated-grid :grid new-points :new-points}
                   (expand-point local-grid current params)]
             (recur
-              (p :vec (vec (p :concat (concat (rest queue) new-points))))
+              (p :concat (concat (rest queue) new-points))
               updated-grid)))))))
 
 (defnp next-steps [local-grid current-step bend-cost]
