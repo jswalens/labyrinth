@@ -23,36 +23,33 @@
   2. has a longer path to it (its current value > value of `point` + cost to go
      to it).
   This function returns {:grid updated-grid :new-points expanded-neighbors}"
-  (let [{:keys [x-cost y-cost z-cost]}
-          params
-        current-value
-          (grid/get-point local-grid point)
-        all-neighbors
-          [{:x (+ x 1) :y    y    :z    z    :value (+ current-value x-cost)}
-           {:x (- x 1) :y    y    :z    z    :value (+ current-value x-cost)}
-           {:x    x    :y (+ y 1) :z    z    :value (+ current-value y-cost)}
-           {:x    x    :y (- y 1) :z    z    :value (+ current-value y-cost)}
-           {:x    x    :y    y    :z (+ z 1) :value (+ current-value z-cost)}
-           {:x    x    :y    y    :z (- z 1) :value (+ current-value z-cost)}]
-        valid-neighbors
-          (filter #(grid/is-point-valid? local-grid %) all-neighbors)
-        neighbors-to-expand
-          (filter
-            (fn [neighbor]
-              (let [nb-current-value (grid/get-point local-grid neighbor)]
-                (and
-                  (not= nb-current-value :full)
-                  (or
-                    (= nb-current-value :empty)
-                    (< (:value neighbor) nb-current-value)))))
-            valid-neighbors)
-        updated-grid
-          (reduce
-            (fn [local-grid neighbor]
-              (grid/set-point local-grid neighbor (:value neighbor)))
-            local-grid
-            neighbors-to-expand)]
-    {:grid updated-grid :new-points neighbors-to-expand}))
+  (dosync
+    (let [{:keys [x-cost y-cost z-cost]}
+            params
+          current-value
+            @(grid/get-point local-grid point)
+          all-neighbors
+            [{:x (+ x 1) :y    y    :z    z    :value (+ current-value x-cost)}
+             {:x (- x 1) :y    y    :z    z    :value (+ current-value x-cost)}
+             {:x    x    :y (+ y 1) :z    z    :value (+ current-value y-cost)}
+             {:x    x    :y (- y 1) :z    z    :value (+ current-value y-cost)}
+             {:x    x    :y    y    :z (+ z 1) :value (+ current-value z-cost)}
+             {:x    x    :y    y    :z (- z 1) :value (+ current-value z-cost)}]
+          valid-neighbors
+            (filter #(grid/is-point-valid? local-grid %) all-neighbors)
+          neighbors-to-expand
+            (filter
+              (fn [neighbor]
+                (let [nb-current-value @(grid/get-point local-grid neighbor)]
+                  (and
+                    (not= nb-current-value :full)
+                    (or
+                      (= nb-current-value :empty)
+                      (< (:value neighbor) nb-current-value)))))
+              valid-neighbors)]
+      (doseq [neighbor neighbors-to-expand]
+        (ref-set (grid/get-point local-grid neighbor) (:value neighbor)))
+      {:grid local-grid :new-points neighbors-to-expand})))
 
 (defn min-grid-point [a b]
   (cond
@@ -76,7 +73,8 @@
           (-> local-grid-initial
             (grid/set-point src 0)        ; src = 0
             (grid/set-point dst :empty)   ; dst = empty
-            (grid/grid-map #(ref % :resolve (fn [o p c] (min-grid-point p c)))))]
+            (grid/grid-map
+              #(ref % :resolve (fn [o p c] (min-grid-point p c)))))]
               ; make each cell a ref with custom resolve function min-grid-point
     (log "expansion queue" queue)
     (if (empty? queue)
