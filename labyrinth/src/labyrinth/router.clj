@@ -76,7 +76,7 @@
           (-> local-grid-initial
             (grid/set-point src 0)        ; src = 0
             (grid/set-point dst :empty)   ; dst = empty
-            (grid/grid-map #(ref % {:resolve (fn [o p c] (min-grid-point p c))})))]
+            (grid/grid-map #(ref % :resolve (fn [o p c] (min-grid-point p c)))))]
               ; make each cell a ref with custom resolve function min-grid-point
     (log "expansion queue" queue)
     (if (empty? queue)
