@@ -2,7 +2,8 @@
   (:require [labyrinth.coordinate :as coordinate]
             [labyrinth.grid :as grid]
             [taoensso.timbre.profiling :refer [defnp p]])
-  (:import [java.io StringWriter]))
+  (:import [java.io StringWriter]
+           [java.util LinkedList]))
 
 ; Note: C++ function router_alloc is not needed, we just pass the parameters
 ; directly.
@@ -66,9 +67,7 @@
   paths from src to dst in the grid.)"
   (log "src" src)
   (log "dst" dst)
-  (loop [queue
-          ; start at source
-          (list src)
+  (let [queue (LinkedList.)
         local-grid
           (-> local-grid-initial
             (grid/set-point src 0)        ; src = 0
@@ -76,17 +75,18 @@
             (grid/grid-map
               #(ref % :resolve (fn [o p c] (min-grid-point p c)))))]
               ; make each cell a ref with custom resolve function min-grid-point
-    (log "expansion queue" queue)
-    (if (p :empty (empty? queue))
-      {:grid (grid/grid-map local-grid deref) :reachable false} ; no path
-      (let [current (first queue)]
-        (if (coordinate/equal? current dst)
-          {:grid (grid/grid-map local-grid deref) :reachable true} ; dst reached
-          (let [{updated-grid :grid new-points :new-points}
-                  (expand-point local-grid current params)]
-            (recur
-              (p :concat (concat (rest queue) new-points))
-              updated-grid)))))))
+    (.add queue src)
+    (loop []
+      (log "expansion queue" queue)
+      (if (p :empty (empty? queue)) ; TODO
+        {:grid (grid/grid-map local-grid deref) :reachable false} ; no path
+        (let [current (p :pop (.pop queue))]
+          (if (coordinate/equal? current dst)
+            {:grid (grid/grid-map local-grid deref) :reachable true} ; dst reached
+            (let [{updated-grid :grid new-points :new-points}
+                    (expand-point local-grid current params)]
+              (p :addAll (.addAll queue new-points))
+              (recur))))))))
 
 (defnp next-steps [local-grid current-step bend-cost]
   "All possible next steps after the current one, and their cost.
