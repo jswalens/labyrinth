@@ -48,8 +48,9 @@
                       (= nb-current-value :empty)
                       (< (:value neighbor) nb-current-value)))))
               valid-neighbors)]
-      (doseq [neighbor neighbors-to-expand]
-        (ref-set (grid/get-point local-grid neighbor) (:value neighbor)))
+      (p :map-deref (doall (map deref (:p :map-future (doall (map
+        #(p :future (future (p :in-future (ref-set (grid/get-point local-grid %) (:value %)))))
+        neighbors-to-expand))))))
       {:grid local-grid :new-points neighbors-to-expand})))
 
 (defn min-grid-point [a b]
