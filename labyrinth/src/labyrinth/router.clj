@@ -77,8 +77,8 @@
               ; make each cell a ref with custom resolve function min-grid-point
     (.add queue src)
     (loop []
-      (log "expansion queue" queue)
-      (if (p :empty (empty? queue)) ; TODO
+      ;(log "expansion queue" queue)
+      (if (p :empty (empty? queue))
         {:grid (grid/grid-map local-grid deref) :reachable false} ; no path
         (let [current (p :pop (.pop queue))]
           (if (coordinate/equal? current dst)
