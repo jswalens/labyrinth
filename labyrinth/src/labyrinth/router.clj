@@ -60,6 +60,14 @@
     (= b :empty) a
     :else        (min a b)))
 
+(defnp expand-step [local-grid current dst params]
+  "Return true if ... false if ..."
+  (if (coordinate/equal? current dst)
+    true
+    (let [{updated-grid :grid new-points :new-points}
+            (expand-point local-grid current params)]
+      (some true? (map #(expand-step local-grid % dst params) new-points)))))
+
 (defnp expand [src dst local-grid-initial params]
   "Try to find a path from `src` to `dst` through `local-grid-initial`.
   Returns `{:grid grid :reachable found}`, where `grid` is the updated grid and
@@ -67,26 +75,15 @@
   paths from src to dst in the grid.)"
   (log "src" src)
   (log "dst" dst)
-  (let [queue (LinkedList.)
-        local-grid
+  (let [local-grid
           (-> local-grid-initial
             (grid/set-point src 0)        ; src = 0
             (grid/set-point dst :empty)   ; dst = empty
             (grid/grid-map
               #(ref % :resolve (fn [o p c] (min-grid-point p c)))))]
-              ; make each cell a ref with custom resolve function min-grid-point
-    (.add queue src)
-    (loop []
-      ;(log "expansion queue" queue)
-      (if (p :empty (empty? queue))
-        {:grid (grid/grid-map local-grid deref) :reachable false} ; no path
-        (let [current (p :pop (.pop queue))]
-          (if (coordinate/equal? current dst)
-            {:grid (grid/grid-map local-grid deref) :reachable true} ; dst reached
-            (let [{updated-grid :grid new-points :new-points}
-                    (expand-point local-grid current params)]
-              (p :addAll (.addAll queue new-points))
-              (recur))))))))
+    (if (expand-step local-grid src dst params)
+      {:grid (grid/grid-map local-grid deref) :reachable true}
+      {:grid (grid/grid-map local-grid deref) :reachable false})))
 
 (defnp next-steps [local-grid current-step bend-cost]
   "All possible next steps after the current one, and their cost.
