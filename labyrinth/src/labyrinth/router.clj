@@ -87,7 +87,7 @@
     true
     (let [{updated-grid :grid new-points :new-points}
             (expand-point local-grid src params)]
-      (some true? (map #(expand-step-iterative local-grid % dst params) new-points)))))
+      (some true? (pmap #(expand-step-iterative local-grid % dst params) new-points)))))
 
 (defnp expand [src dst local-grid-initial params]
   "Try to find a path from `src` to `dst` through `local-grid-initial`.
