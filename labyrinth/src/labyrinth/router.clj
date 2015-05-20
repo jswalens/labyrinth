@@ -78,6 +78,9 @@
               (p :addAll (.addAll queue new-points))
               (recur))))))))
 
+(defn- map-all [f xs]
+  (doall (map f xs)))
+
 (defnp expand-step-recursive [local-grid src dst params]
   "Returns true if a path from current to dst was found, false if no path was
   found. Modifies local-grid in both cases.
@@ -87,7 +90,12 @@
     true
     (let [{updated-grid :grid new-points :new-points}
             (expand-point local-grid src params)]
-      (some true? (map #(expand-step-iterative local-grid % dst params) new-points)))))
+      (log "Doing" (count new-points) "points in parallel")
+      (some true?
+        (map-all deref
+          (map-all
+            #(future (expand-step-iterative local-grid % dst params))
+            new-points))))))
 
 (defnp expand [src dst local-grid-initial params]
   "Try to find a path from `src` to `dst` through `local-grid-initial`.
