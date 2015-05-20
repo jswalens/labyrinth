@@ -60,13 +60,34 @@
     (= b :empty) a
     :else        (min a b)))
 
-(defnp expand-step [local-grid current dst params]
-  "Return true if ... false if ..."
-  (if (coordinate/equal? current dst)
+(defnp expand-step-iterative [local-grid src dst params]
+  "Returns true if a path from src to dst was found, false if no path was
+  found. Modifies local-grid in both cases.
+
+  This is an iterative version, that uses a queue."
+  (let [queue (LinkedList.)]
+    (.add queue src)
+    (loop []
+      (if (empty? queue)
+        false
+        (let [current (p :pop (.pop queue))]
+          (if (coordinate/equal? current dst)
+            true
+            (let [{updated-grid :grid new-points :new-points}
+                    (expand-point local-grid current params)]
+              (p :addAll (.addAll queue new-points))
+              (recur))))))))
+
+(defnp expand-step-recursive [local-grid src dst params]
+  "Returns true if a path from current to dst was found, false if no path was
+  found. Modifies local-grid in both cases.
+
+  This is an recursive version, calling expand-step-iterative."
+  (if (coordinate/equal? src dst)
     true
     (let [{updated-grid :grid new-points :new-points}
-            (expand-point local-grid current params)]
-      (some true? (map #(expand-step local-grid % dst params) new-points)))))
+            (expand-point local-grid src params)]
+      (some true? (map #(expand-step-iterative local-grid % dst params) new-points)))))
 
 (defnp expand [src dst local-grid-initial params]
   "Try to find a path from `src` to `dst` through `local-grid-initial`.
@@ -81,7 +102,7 @@
             (grid/set-point dst :empty)   ; dst = empty
             (grid/grid-map
               #(ref % :resolve (fn [o p c] (min-grid-point p c)))))]
-    (if (expand-step local-grid src dst params)
+    (if (expand-step-recursive local-grid src dst params)
       {:grid (grid/grid-map local-grid deref) :reachable true}
       {:grid (grid/grid-map local-grid deref) :reachable false})))
 
