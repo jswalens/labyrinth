@@ -91,7 +91,12 @@
             (if (< n 4)
               #(expand-step-recursive local-grid % dst (inc n) params)
               #(expand-step-iterative local-grid % dst params))]
-      (some true? (map f new-points)))))
+      (some true?
+        (->> new-points
+          (map f)
+          (map #(p :future (future %)))
+          (doall)
+          (map #(p :deref-future (deref %))))))))
 
 (defnp expand [src dst local-grid-initial params]
   "Try to find a path from `src` to `dst` through `local-grid-initial`.
