@@ -187,14 +187,15 @@
   "Tries to find a path. Returns path if one was found, nil otherwise.
   A path is a vector of points."
   (dosync
-    (let [{reachable? :reachable local-grid :grid}
-            (expand src dst (grid/copy shared-grid) params)]
-      (if reachable?
-        (let [path (traceback local-grid dst params)]
-          (when path
-            (grid/add-path shared-grid path)) ; may fail and cause rollback
-          path)
-        (log "expansion failed")))))
+    (p :find-path-tx
+      (let [{reachable? :reachable local-grid :grid}
+              (expand src dst (grid/copy shared-grid) params)]
+        (if reachable?
+          (let [path (traceback local-grid dst params)]
+            (when path
+              (grid/add-path shared-grid path)) ; may fail and cause rollback
+            path)
+          (log "expansion failed"))))))
 
 (defnp solve [params maze paths-per-thread]
   "Solve maze, append found paths to `paths-per-thread`."
