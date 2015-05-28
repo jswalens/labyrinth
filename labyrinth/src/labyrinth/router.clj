@@ -91,13 +91,12 @@
     (let [{updated-grid :grid new-points :new-points}
             (expand-point local-grid src params)
           f
-            (if (< n 4)
+            (if (< n 2)
               #(expand-step-recursive local-grid % dst (inc n) params)
               #(expand-step-iterative local-grid % dst params))]
       (some true?
         (->> new-points
-          (map f)
-          (map #(p :future (future %)))
+          (map #(p :future (future (f %))))
           (doall)
           (map #(p :deref-future (deref %))))))))
 
