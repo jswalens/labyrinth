@@ -111,7 +111,8 @@
             (grid/set-point g dst :empty)   ; dst = empty
             (p :ref-grid (grid/grid-map g
               #(ref % :resolve (fn [o p c] (min-grid-point p c))))))]
-    (if (expand-step-recursive local-grid src dst 0 params)
+    (if (p :outer-expand-step-recursive
+          (expand-step-recursive local-grid src dst 0 params))
       {:grid (p :deref-grid (grid/grid-map local-grid deref)) :reachable true}
       {:grid (p :deref-grid (grid/grid-map local-grid deref))
        :reachable false})))
