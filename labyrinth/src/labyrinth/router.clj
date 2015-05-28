@@ -106,14 +106,15 @@
   (log "src" src)
   (log "dst" dst)
   (let [local-grid
-          (-> local-grid-initial
-            (grid/set-point src 0)        ; src = 0
-            (grid/set-point dst :empty)   ; dst = empty
-            (grid/grid-map
-              #(ref % :resolve (fn [o p c] (min-grid-point p c)))))]
+          (as-> local-grid-initial g
+            (grid/set-point g src 0)        ; src = 0
+            (grid/set-point g dst :empty)   ; dst = empty
+            (p :ref-grid (grid/grid-map g
+              #(ref % :resolve (fn [o p c] (min-grid-point p c))))))]
     (if (expand-step-recursive local-grid src dst 0 params)
-      {:grid (grid/grid-map local-grid deref) :reachable true}
-      {:grid (grid/grid-map local-grid deref) :reachable false})))
+      {:grid (p :deref-grid (grid/grid-map local-grid deref)) :reachable true}
+      {:grid (p :deref-grid (grid/grid-map local-grid deref))
+       :reachable false})))
 
 (defnp next-steps [local-grid current-step bend-cost]
   "All possible next steps after the current one, and their cost.
