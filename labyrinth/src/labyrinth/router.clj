@@ -194,7 +194,8 @@
         (if reachable?
           (let [path (traceback local-grid dst params)]
             (when path
-              (grid/add-path shared-grid path)) ; may fail and cause rollback
+              (p :add-path (grid/add-path shared-grid path)))
+                ; may fail and cause rollback
             path)
           (log "expansion failed"))))))
 
