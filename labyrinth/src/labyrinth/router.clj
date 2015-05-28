@@ -1,6 +1,7 @@
 (ns labyrinth.router
   (:require [labyrinth.coordinate :as coordinate]
             [labyrinth.grid :as grid]
+            [taoensso.timbre :as timbre]
             [taoensso.timbre.profiling :refer [defnp p]])
   (:import [java.io StringWriter]
            [java.util LinkedList]))
@@ -16,6 +17,8 @@
 
 ;(def log println)
 (defn log [& _] nil)
+
+;(timbre/set-level! :fatal)
 
 (defnp expand-point [local-grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
