@@ -96,7 +96,7 @@
               #(expand-step-iterative local-grid % dst params))]
       (some true?
         (->> new-points
-          (map #(p :future (future (f %))))
+          (map #(p :future (future (p :in-future (f %)))))
           (doall)
           (map #(p :deref-future (deref %))))))))
 
