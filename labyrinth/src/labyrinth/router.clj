@@ -18,7 +18,7 @@
 ;(def log println)
 (defn log [& _] nil)
 
-;(timbre/set-level! :fatal)
+(timbre/set-level! :fatal)
 
 (defnp expand-point [local-grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
@@ -91,7 +91,7 @@
     (let [{updated-grid :grid new-points :new-points}
             (expand-point local-grid src params)
           f
-            (if (< n 2)
+            (if (< n 1)
               #(expand-step-recursive local-grid % dst (inc n) params)
               #(expand-step-iterative local-grid % dst params))]
       (some true?
