@@ -73,12 +73,12 @@
     (loop []
       (if (empty? queue)
         false
-        (let [current (p :pop (.pop queue))]
+        (let [current (.pop queue)]
           (if (coordinate/equal? current dst)
             true
             (let [{updated-grid :grid new-points :new-points}
                     (expand-point local-grid current params)]
-              (p :addAll (.addAll queue new-points))
+              (.addAll queue new-points)
               (recur))))))))
 
 (defnp expand-step-recursive [local-grid src dst n params]
