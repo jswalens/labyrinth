@@ -53,7 +53,7 @@
               valid-neighbors)]
       (doseq [neighbor neighbors-to-expand]
         (ref-set (grid/get-point local-grid neighbor) (:value neighbor)))
-      {:grid local-grid :new-points neighbors-to-expand})))
+      neighbors-to-expand)))
 
 (defn min-grid-point [a b]
   (cond
@@ -76,8 +76,7 @@
         (let [current (.pop queue)]
           (if (coordinate/equal? current dst)
             true
-            (let [{updated-grid :grid new-points :new-points}
-                    (expand-point local-grid current params)]
+            (let [new-points (expand-point local-grid current params)]
               (.addAll queue new-points)
               (recur))))))))
 
@@ -88,10 +87,8 @@
   This is an recursive version, calling expand-step-iterative."
   (if (coordinate/equal? src dst)
     true
-    (let [{updated-grid :grid new-points :new-points}
-            (expand-point local-grid src params)
-          f
-            (if (< n 1)
+    (let [new-points (expand-point local-grid src params)
+          f (if (< n 1)
               #(expand-step-recursive local-grid % dst (inc n) params)
               #(expand-step-iterative local-grid % dst params))]
       (some true?
