@@ -97,24 +97,23 @@
           (doall)
           (map #(p :deref-future (deref %))))))))
 
-(defnp expand [src dst local-grid-initial params]
-  "Try to find a path from `src` to `dst` through `local-grid-initial`.
-  Returns `{:grid grid :reachable found}`, where `grid` is the updated grid and
+(defnp expand [src dst shared-grid params]
+  "Try to find a path from `src` to `dst` through `shared-grid`.
+  Returns `{:grid grid :reachable found}`, where `grid` is the local grid and
   `found` is true if the destination was reached. (There might be multiple
   paths from src to dst in the grid.)"
   (log "src" src)
   (log "dst" dst)
   (let [local-grid
-          (as-> local-grid-initial g
+          (as-> (p :grid-copy (grid/copy shared-grid)) g
             (grid/set-point g src 0)        ; src = 0
             (grid/set-point g dst :empty)   ; dst = empty
             (p :ref-grid (grid/grid-map g
-              #(ref % :resolve (fn [o p c] (min-grid-point p c))))))]
-    (if (p :outer-expand-step-recursive
-          (expand-step-recursive local-grid src dst 0 params))
-      {:grid (p :deref-grid (grid/grid-map local-grid deref)) :reachable true}
-      {:grid (p :deref-grid (grid/grid-map local-grid deref))
-       :reachable false})))
+              #(ref % :resolve (fn [o p c] (min-grid-point p c))))))
+        reachable
+          (p :outer-expand-step-recursive
+            (expand-step-recursive local-grid src dst 0 params))]
+    {:grid local-grid :reachable reachable}))
 
 (defnp next-steps [local-grid current-step bend-cost]
   "All possible next steps after the current one, and their cost.
@@ -126,11 +125,11 @@
       (fn [dir]
         (let [point (coordinate/step-to dir (:point current-step))]
           (if (and (grid/is-point-valid? local-grid point)
-                   (not (= (grid/get-point local-grid point) :empty))
-                   (not (= (grid/get-point local-grid point) :full)))
+                   (not (= @(grid/get-point local-grid point) :empty))
+                   (not (= @(grid/get-point local-grid point) :full)))
             (let [bending? (not= dir (:direction current-step))
                   b-cost   (if bending? bend-cost 0)
-                  cost     (+ (grid/get-point local-grid point) b-cost)]
+                  cost     (+ @(grid/get-point local-grid point) b-cost)]
               {:step {:point point :direction dir} :cost cost})
             nil))))
     (filter identity))) ; filter out nil
@@ -141,7 +140,7 @@
   is a neighbor of `current` and `dir` is e.g. `:x-pos`."
   ; first, try with bend cost
   (let [current-val
-          (grid/get-point local-grid (:point current-step))
+          @(grid/get-point local-grid (:point current-step))
         steps
           (next-steps local-grid current-step (:bend-cost params))
         cheapest
@@ -159,16 +158,17 @@
   "Go back from dst to src, along an optimal path, and mark these cells as
   filled in the local grid. "
   (loop [current-step {:point dst :direction :zero}
-         grid         local-grid
          path         (list)]
-    (let [current-point (:point current-step)]
-      (if (= (grid/get-point local-grid current-point) 0)
+    (let [current-point     (:point current-step)
+          current-point-ref (grid/get-point local-grid current-point)]
+      (if (= @current-point-ref 0)
         ; current-point = source: we're done
         (cons current-point path)
         ; find next point along cheapest step
         (if-let [next-step (find-cheapest-step local-grid current-step params)]
-          (recur next-step (grid/set-point local-grid current-point :full)
-            (cons current-point path))
+          (do
+            (ref-set current-point-ref :full)
+            (recur next-step (cons current-point path)))
           (log "traceback failed"))))))
 
 (defnp find-work [queue]
@@ -190,7 +190,7 @@
   (dosync
     (p :find-path-tx
       (let [{reachable? :reachable local-grid :grid}
-              (expand src dst (grid/copy shared-grid) params)]
+              (expand src dst shared-grid params)]
         (if reachable?
           (let [path (traceback local-grid dst params)]
             (when path
