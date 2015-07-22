@@ -20,7 +20,7 @@
 
 (timbre/set-level! :fatal)
 
-(defn expand-point [local-grid {x :x y :y z :z :as point} params]
+(defn expand-point [shared-grid local-grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
   A neighbor is still to be expanded if it not full (i.e. a wall), and either:
   1. has no path to it yet (it is empty), or
@@ -44,26 +44,17 @@
           neighbors-to-expand
             (filter
               (fn [neighbor]
-                (let [nb-current-value @(grid/get-point local-grid neighbor)]
-                  (and
-                    (not= nb-current-value :full)
-                    (or
-                      (= nb-current-value :empty)
-                      (< (:value neighbor) nb-current-value)))))
+                (and
+                  (not= @(grid/get-point shared-grid neighbor) :full)
+                  (or
+                    (= @(grid/get-point local-grid neighbor) :empty)
+                    (< (:value neighbor) @(grid/get-point local-grid neighbor)))))
               valid-neighbors)]
       (doseq [neighbor neighbors-to-expand]
         (ref-set (grid/get-point local-grid neighbor) (:value neighbor)))
       neighbors-to-expand)))
 
-(defn min-grid-point [a b]
-  (cond
-    (= a :full)  :full
-    (= b :full)  :full
-    (= a :empty) b
-    (= b :empty) a
-    :else        (min a b)))
-
-(defnp expand-step-iterative [local-grid src dst params]
+(defnp expand-step-iterative [shared-grid local-grid src dst params]
   "Returns true if a path from src to dst was found, false if no path was
   found. Modifies local-grid in both cases.
 
@@ -76,21 +67,21 @@
         (let [current (.pop queue)]
           (if (coordinate/equal? current dst)
             true
-            (let [new-points (expand-point local-grid current params)]
+            (let [new-points (expand-point shared-grid local-grid current params)]
               (.addAll queue new-points)
               (recur))))))))
 
-(defnp expand-step-recursive [local-grid src dst n params]
+(defnp expand-step-recursive [shared-grid local-grid src dst n params]
   "Returns true if a path from current to dst was found, false if no path was
   found. Modifies local-grid in both cases.
 
   This is an recursive version, calling expand-step-iterative."
   (if (coordinate/equal? src dst)
     true
-    (let [new-points (expand-point local-grid src params)
+    (let [new-points (expand-point shared-grid local-grid src params)
           f (if (< n 1)
-              #(expand-step-recursive local-grid % dst (inc n) params)
-              #(expand-step-iterative local-grid % dst params))]
+              #(expand-step-recursive shared-grid local-grid % dst (inc n) params)
+              #(expand-step-iterative shared-grid local-grid % dst params))]
       (some true?
         (->> new-points
           (map #(p :future (future (p :in-future (f %)))))
@@ -105,14 +96,14 @@
   (log "src" src)
   (log "dst" dst)
   (let [local-grid
-          (as-> (p :grid-copy (grid/copy shared-grid)) g
-            (grid/set-point g src 0)        ; src = 0
-            (grid/set-point g dst :empty)   ; dst = empty
-            (p :ref-grid (grid/grid-map g
-              #(ref % :resolve (fn [o p c] (min-grid-point p c))))))
+          (grid/alloc-locally-shared
+            (:width shared-grid)
+            (:height shared-grid)
+            (:depth shared-grid))
+        _ (ref-set (grid/get-point local-grid src) 0)
         reachable
           (p :outer-expand-step-recursive
-            (expand-step-recursive local-grid src dst 0 params))]
+            (expand-step-recursive shared-grid local-grid src dst 0 params))]
     {:grid local-grid :reachable reachable}))
 
 (defnp next-steps [local-grid current-step bend-cost]

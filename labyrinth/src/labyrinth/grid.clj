@@ -23,6 +23,26 @@
    :depth  depth
    :points (vec (repeat (* width height depth) :empty))})
 
+(defn min-grid-point [a b]
+  (cond
+    ;(= a :full)  :full
+    ;(= b :full)  :full
+    (= a :empty) b
+    (= b :empty) a
+    :else        (min a b)))
+
+(defn alloc-locally-shared [width height depth]
+  "Returns an empty local grid of the requested size.
+  Points are either :empty or :full, not encapsulated in a ref.
+
+  The C++ version ensures the points are aligned in the cache, we don't do
+  this in Clojure."
+  {:width  width
+   :height height
+   :depth  depth
+   :points (vec (repeatedly (* width height depth)
+                  #(ref :empty :resolve (fn [o p c] (min-grid-point p c)))))})
+
 (defn copy [grid]
   "Make a local grid, copying the given shared grid.
   Points will be :empty, :full, or filled with a number; not encapsulated in a
