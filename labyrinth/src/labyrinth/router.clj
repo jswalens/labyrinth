@@ -20,7 +20,7 @@
 
 (timbre/set-level! :fatal)
 
-(defnp expand-point [local-grid {x :x y :y z :z :as point} params]
+(defn expand-point [local-grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
   A neighbor is still to be expanded if it not full (i.e. a wall), and either:
   1. has no path to it yet (it is empty), or
