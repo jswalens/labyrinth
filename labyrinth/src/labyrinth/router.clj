@@ -63,39 +63,38 @@
     (= b :empty) a
     :else        (min a b)))
 
-(defnp expand-step-iterative [local-grid src dst params]
+(defnp iterate-over-bag [bag dst local-grid params]
+  (for [current bag]
+    (if (coordinate/equal? current dst)
+      {:found true :bag nil}
+      {:found false :bag (expand-point local-grid current params)})))
+
+(defnp bag-union [bag1 bag2]
+  (concat bag1 bag2))
+
+(defnp reduce-iterations [iterations]
+  (reduce
+    (fn [{found-1 :found bag-1 :bag} {found-2 :found bag-2 :bag}]
+      {:found (or found-1 found-2) :bag (bag-union bag-1 bag-2)})
+    iterations))
+
+(defnp expand-bag [local-grid src dst params]
   "Returns true if a path from src to dst was found, false if no path was
   found. Modifies local-grid in both cases.
 
-  This is an iterative version, that uses a queue."
-  (let [queue (LinkedList.)]
-    (.add queue src)
-    (loop []
-      (if (empty? queue)
-        false
-        (let [current (.pop queue)]
-          (if (coordinate/equal? current dst)
-            true
-            (let [new-points (expand-point local-grid current params)]
-              (.addAll queue new-points)
-              (recur))))))))
+  This is a version that uses 'bags', inspired by [1] but still sequential.
 
-(defnp expand-step-recursive [local-grid src dst n params]
-  "Returns true if a path from current to dst was found, false if no path was
-  found. Modifies local-grid in both cases.
-
-  This is an recursive version, calling expand-step-iterative."
-  (if (coordinate/equal? src dst)
-    true
-    (let [new-points (expand-point local-grid src params)
-          f (if (< n 1)
-              #(expand-step-recursive local-grid % dst (inc n) params)
-              #(expand-step-iterative local-grid % dst params))]
-      (some true?
-        (->> new-points
-          (map #(p :future (future (p :in-future (f %)))))
-          (doall)
-          (map #(p :deref-future (deref %))))))))
+  [1] C. E. Leierson and T. B. Schardl. A Work-Efficient Parallel Breadth-First
+  Search Algorithm (or How to Cope with the Nondeterminism of Reducers). In
+  SPAA'10, 2010."
+  (loop [bag (list src)]
+    (if (empty? bag)
+      false
+      (let [{found :found new-bag :bag}
+              (reduce-iterations (iterate-over-bag bag dst local-grid params))]
+        (if found
+          true
+          (recur new-bag))))))
 
 (defnp expand [src dst shared-grid params]
   "Try to find a path from `src` to `dst` through `shared-grid`.
@@ -111,8 +110,8 @@
             (p :ref-grid (grid/grid-map g
               #(ref % :resolve (fn [o p c] (min-grid-point p c))))))
         reachable
-          (p :outer-expand-step-recursive
-            (expand-step-recursive local-grid src dst 0 params))]
+          (p :outer-expand
+            (expand-bag local-grid src dst params))]
     {:grid local-grid :reachable reachable}))
 
 (defnp next-steps [local-grid current-step bend-cost]
