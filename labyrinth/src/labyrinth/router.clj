@@ -64,18 +64,23 @@
     :else        (min a b)))
 
 (defnp iterate-over-bag [bag dst local-grid params]
-  (for [current bag]
-    (if (coordinate/equal? current dst)
-      {:found true :bag nil}
-      {:found false :bag (expand-point local-grid current params)})))
+  (doall
+    (for [current bag]
+      (if (coordinate/equal? current dst)
+        {:found true :bag []}
+        {:found false :bag (expand-point local-grid current params)}))))
 
-(defnp bag-union [bag1 bag2]
-  (concat bag1 bag2))
+(defnp new-bag [init]
+  (let [ll (LinkedList.)]
+    (.addAll ll init)
+    ll))
 
 (defnp reduce-iterations [iterations]
   (reduce
-    (fn [{found-1 :found bag-1 :bag} {found-2 :found bag-2 :bag}]
-      {:found (or found-1 found-2) :bag (bag-union bag-1 bag-2)})
+    (fn [{found :found big-bag :big-bag} {found-1 :found bag-1 :bag}]
+      (.addAll big-bag bag-1)
+      {:found (or found found-1) :big-bag big-bag})
+    {:found false :big-bag (new-bag [])}
     iterations))
 
 (defnp expand-bag [local-grid src dst params]
@@ -87,10 +92,10 @@
   [1] C. E. Leierson and T. B. Schardl. A Work-Efficient Parallel Breadth-First
   Search Algorithm (or How to Cope with the Nondeterminism of Reducers). In
   SPAA'10, 2010."
-  (loop [bag (list src)]
+  (loop [bag (new-bag [src])]
     (if (empty? bag)
       false
-      (let [{found :found new-bag :bag}
+      (let [{found :found new-bag :big-bag}
               (reduce-iterations (iterate-over-bag bag dst local-grid params))]
         (if found
           true
