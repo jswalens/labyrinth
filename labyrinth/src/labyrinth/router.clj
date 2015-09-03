@@ -63,8 +63,11 @@
     (= b :empty) a
     :else        (min a b)))
 
+(defn parallel [lst]
+  (map deref (doall (map #(future %) lst))))
+
 (defnp iterate-over-bag [bag dst local-grid params]
-  (doall
+  (parallel
     (for [current bag]
       (if (coordinate/equal? current dst)
         {:found true :bag []}
