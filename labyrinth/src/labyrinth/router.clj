@@ -18,7 +18,7 @@
 ;(def log println)
 (defn log [& _] nil)
 
-(timbre/set-level! :fatal)
+;(timbre/set-level! :fatal)
 
 (defn expand-point [local-grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
@@ -64,7 +64,7 @@
     :else        (min a b)))
 
 (defn parallel [lst]
-  (map deref (doall (map #(future %) lst))))
+  (map deref (doall (map #(future %) (partition 100 lst)))))
 
 (defnp iterate-over-bag [bag dst local-grid params]
   (parallel
