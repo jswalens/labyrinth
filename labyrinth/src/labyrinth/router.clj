@@ -90,7 +90,7 @@
   "Returns true if a path from src to dst was found, false if no path was
   found. Modifies local-grid in both cases.
 
-  This is a version that uses 'bags', inspired by [1] but still sequential.
+  This is a version that uses 'bags', inspired by [1].
 
   [1] C. E. Leierson and T. B. Schardl. A Work-Efficient Parallel Breadth-First
   Search Algorithm (or How to Cope with the Nondeterminism of Reducers). In
