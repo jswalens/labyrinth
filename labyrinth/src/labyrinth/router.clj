@@ -67,11 +67,12 @@
   (map deref (doall (map #(future %) lst))))
 
 (defnp iterate-over-bag [bag dst local-grid params]
-  (parallel
-    (for [current bag]
-      (if (coordinate/equal? current dst)
-        {:found true :bag []}
-        {:found false :bag (expand-point local-grid current params)}))))
+  ;(parallel
+  ; Note: no point in parallelizing this, it takes < 1% of the total run time.
+  (for [current bag]
+    (if (coordinate/equal? current dst)
+      {:found true :bag []}
+      {:found false :bag (expand-point local-grid current params)})))
 
 (defnp new-bag [init]
   (let [ll (LinkedList.)]
