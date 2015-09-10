@@ -18,7 +18,7 @@
 ;(def log println)
 (defn log [& _] nil)
 
-(timbre/set-level! :fatal)
+;(timbre/set-level! :fatal)
 
 (defn expand-point [local-grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
@@ -64,7 +64,11 @@
     :else        (min a b)))
 
 (defn parallel [lst]
-  (map deref (doall (map #(future %) lst))))
+  (let [partitions (partition 100 100 (list) lst)
+        futures    (doall (map #(future (doall %)) partitions))
+        results    (map deref futures)
+        result     (flatten results)]
+    result))
 
 (defnp iterate-over-bag [bag dst local-grid params]
   (parallel
@@ -81,7 +85,7 @@
 (defnp reduce-iterations [iterations]
   (reduce
     (fn [{found :found big-bag :big-bag} {found-1 :found bag-1 :bag}]
-      (.addAll big-bag bag-1)
+      (.addAll big-bag bag-1) ; TODO: can this introduce duplicate elements?
       {:found (or found found-1) :big-bag big-bag})
     {:found false :big-bag (new-bag [])}
     iterations))
