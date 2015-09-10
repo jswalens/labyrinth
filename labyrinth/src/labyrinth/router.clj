@@ -4,7 +4,7 @@
             [taoensso.timbre :as timbre]
             [taoensso.timbre.profiling :refer [defnp p]])
   (:import [java.io StringWriter]
-           [java.util LinkedList]))
+           [java.util HashSet]))
 
 ; Note: C++ function router_alloc is not needed, we just pass the parameters
 ; directly.
@@ -77,17 +77,16 @@
         {:found true :bag []}
         {:found false :bag (expand-point local-grid current params)}))))
 
-(defnp new-bag [init]
-  (let [ll (LinkedList.)]
-    (.addAll ll init)
-    ll))
+(defnp new-bag
+  ([] (HashSet.))
+  ([init] (let [bag (HashSet.)] (.addAll bag init) bag)))
 
 (defnp reduce-iterations [iterations]
   (reduce
     (fn [{found :found big-bag :big-bag} {found-1 :found bag-1 :bag}]
-      (.addAll big-bag bag-1) ; TODO: can this introduce duplicate elements?
+      (.addAll big-bag bag-1)
       {:found (or found found-1) :big-bag big-bag})
-    {:found false :big-bag (new-bag [])}
+    {:found false :big-bag (new-bag)}
     iterations))
 
 (defnp expand-bag [local-grid src dst params]
