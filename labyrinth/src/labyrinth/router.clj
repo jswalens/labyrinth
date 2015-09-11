@@ -70,24 +70,27 @@
         result     (flatten results)]
     result))
 
-(defnp iterate-over-bag [bag dst local-grid params]
-  (parallel
-    (for [current bag]
-      (if (coordinate/equal? current dst)
-        {:found true :bag []}
-        {:found false :bag (expand-point local-grid current params)}))))
-
-(defnp new-bag
+(defn new-bag
   ([] (HashSet.))
   ([init] (let [bag (HashSet.)] (.addAll bag init) bag)))
 
-(defnp reduce-iterations [iterations]
-  (reduce
-    (fn [{found :found big-bag :big-bag} {found-1 :found bag-1 :bag}]
-      (.addAll big-bag bag-1)
-      {:found (or found found-1) :big-bag big-bag})
-    {:found false :big-bag (new-bag)}
-    iterations))
+(defnp expand-step [bag dst local-grid params]
+  (let [points
+          (p :expand-step-points
+            (parallel
+              (for [current bag]
+                (if (coordinate/equal? current dst)
+                  {:found true :bag []}
+                  {:found false :bag (expand-point local-grid current params)}))))
+        reduced
+          (p :expand-step-reduce
+            (reduce
+              (fn [{found :found big-bag :big-bag} {found-1 :found bag-1 :bag}]
+                (.addAll big-bag bag-1)
+                {:found (or found found-1) :big-bag big-bag})
+              {:found false :big-bag (new-bag)}
+              points))]
+    reduced))
 
 (defnp expand-bag [local-grid src dst params]
   "Returns true if a path from src to dst was found, false if no path was
@@ -101,8 +104,7 @@
   (loop [bag (new-bag [src])]
     (if (empty? bag)
       false
-      (let [{found :found new-bag :big-bag}
-              (reduce-iterations (iterate-over-bag bag dst local-grid params))]
+      (let [{found :found new-bag :big-bag} (expand-step bag dst local-grid params)]
         (if found
           true
           (recur new-bag))))))
