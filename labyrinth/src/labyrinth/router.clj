@@ -82,15 +82,18 @@
                 (if (coordinate/equal? current dst)
                   {:found true :bag []}
                   {:found false :bag (expand-point local-grid current params)}))))
-        reduced
+        big-bag (new-bag)
+        found?
           (p :expand-step-reduce
-            (reduce
-              (fn [{found :found big-bag :big-bag} {found-1 :found bag-1 :bag}]
-                (.addAll big-bag bag-1)
-                {:found (or found found-1) :big-bag big-bag})
-              {:found false :big-bag (new-bag)}
-              points))]
-    reduced))
+            (loop [points points]
+              (if (empty? points)
+                false
+                (if (:found (first points))
+                  true
+                  (do
+                    (.addAll big-bag (:bag (first points)))
+                    (recur (rest points)))))))]
+    {:found found? :big-bag big-bag}))
 
 (defnp expand-bag [local-grid src dst params]
   "Returns true if a path from src to dst was found, false if no path was
