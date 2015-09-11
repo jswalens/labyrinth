@@ -64,8 +64,7 @@
     :else        (min a b)))
 
 (defn parallel [lst]
-  (let [partitions (partition 100 100 (list) lst)
-        futures    (doall (map #(future (doall %)) partitions))
+  (let [futures    (doall (map #(future (doall %)) lst))
         results    (map deref futures)
         result     (flatten results)]
     result))
@@ -75,25 +74,30 @@
   ([init] (let [bag (HashSet.)] (.addAll bag init) bag)))
 
 (defnp expand-step [bag dst local-grid params]
-  (let [points
-          (p :expand-step-points
+  (let [partitions
+          (p :expand-step-partition (partition 100 100 (list) bag))
+        partial-bags
+          (p :expand-step-partial
             (parallel
-              (for [current bag]
-                (if (coordinate/equal? current dst)
-                  {:found true :bag []}
-                  {:found false :bag (expand-point local-grid current params)}))))
-        big-bag (new-bag)
-        found?
+              (for [partition partitions]
+                (let [partial-bag (HashSet.)]
+                  (loop [points partition]
+                    (if (empty? points)
+                      {:found false :bag partial-bag}
+                      (let [current (first points)]
+                        (if (coordinate/equal? current dst)
+                          {:found true :bag partial-bag}
+                          (do
+                            (.addAll partial-bag (expand-point local-grid current params))
+                            (recur (rest points)))))))))))
+        result
           (p :expand-step-reduce
-            (loop [points points]
-              (if (empty? points)
-                false
-                (if (:found (first points))
-                  true
-                  (do
-                    (.addAll big-bag (:bag (first points)))
-                    (recur (rest points)))))))]
-    {:found found? :big-bag big-bag}))
+            (reduce
+              (fn [{found-1 :found bag-1 :bag} {found-2 :found bag-2 :bag}]
+                (.addAll bag-1 bag-2)
+                {:found (or found-1 found-2) :bag bag-1})
+              partial-bags))]
+    result))
 
 (defnp expand-bag [local-grid src dst params]
   "Returns true if a path from src to dst was found, false if no path was
@@ -107,7 +111,7 @@
   (loop [bag (new-bag [src])]
     (if (empty? bag)
       false
-      (let [{found :found new-bag :big-bag} (expand-step bag dst local-grid params)]
+      (let [{found :found new-bag :bag} (expand-step bag dst local-grid params)]
         (if found
           true
           (recur new-bag))))))
