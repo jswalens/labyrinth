@@ -80,7 +80,7 @@
 
 (defnp expand-step [bag dst local-grid params]
   (let [partition-size
-          (max (/ (count bag) 8) 20)
+          (max (int (/ (count bag) 8)) 20)
         partitions
           (p :expand-step-partition
             (partition partition-size partition-size (list) bag))
