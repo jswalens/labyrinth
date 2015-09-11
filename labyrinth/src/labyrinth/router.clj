@@ -79,22 +79,26 @@
   ([init] (let [bag (HashSet.)] (.addAll bag init) bag)))
 
 (defnp expand-step [bag dst local-grid params]
-  (let [partitions
-          (p :expand-step-partition (partition 100 100 (list) bag))
+  (let [partition-size
+          (max (/ (count bag) 8) 20)
+        partitions
+          (p :expand-step-partition
+            (partition partition-size partition-size (list) bag))
         partial-bags
           (p :expand-step-partials
-            (parallel-for-all [partition partitions]
-              (p :expand-step-partial
-                (let [partial-bag (HashSet.)]
-                  (loop [points partition]
-                    (if (empty? points)
-                      {:found false :bag partial-bag}
-                      (let [current (first points)]
-                        (if (coordinate/equal? current dst)
-                          {:found true :bag partial-bag}
-                          (do
-                            (.addAll partial-bag (expand-point local-grid current params))
-                            (recur (rest points)))))))))))
+            (doall
+              (parallel-for-all [partition partitions]
+                (p :expand-step-partial
+                  (let [partial-bag (HashSet.)]
+                    (loop [points partition]
+                      (if (empty? points)
+                        {:found false :bag partial-bag}
+                        (let [current (first points)]
+                          (if (coordinate/equal? current dst)
+                            {:found true :bag partial-bag}
+                            (do
+                              (.addAll partial-bag (expand-point local-grid current params))
+                              (recur (rest points))))))))))))
         result
           (p :expand-step-reduce
             (reduce
