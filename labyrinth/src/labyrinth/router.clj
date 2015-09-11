@@ -83,7 +83,7 @@
           (max (int (/ (count bag) 8)) 20)
         partitions
           (p :expand-step-partition
-            (partition partition-size partition-size (list) bag))
+            (doall (partition partition-size partition-size (list) bag)))
         partial-bags
           (p :expand-step-partials
             (doall
