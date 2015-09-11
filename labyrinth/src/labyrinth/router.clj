@@ -63,11 +63,16 @@
     (= b :empty) a
     :else        (min a b)))
 
-(defn parallel [lst]
-  (let [futures    (doall (map #(future (doall %)) lst))
-        results    (map deref futures)
-        result     (flatten results)]
-    result))
+(defmacro for-all [seq-exprs body-expr]
+  `(doall
+    (for ~seq-exprs
+      ~body-expr)))
+
+(defmacro parallel-for-all [seq-exprs body-expr]
+  `(map deref
+    (doall
+      (for ~seq-exprs
+        (future ~body-expr)))))
 
 (defn new-bag
   ([] (HashSet.))
@@ -77,9 +82,9 @@
   (let [partitions
           (p :expand-step-partition (partition 100 100 (list) bag))
         partial-bags
-          (p :expand-step-partial
-            (parallel
-              (for [partition partitions]
+          (p :expand-step-partials
+            (parallel-for-all [partition partitions]
+              (p :expand-step-partial
                 (let [partial-bag (HashSet.)]
                   (loop [points partition]
                     (if (empty? points)
