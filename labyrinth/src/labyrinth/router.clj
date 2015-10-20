@@ -112,9 +112,12 @@
   "Returns true if a path from src to dst was found, false if no path was
   found. Modifies local-grid in both cases.
 
-  This is a version that uses 'bags', inspired by [1].
+  This is a version that uses 'bags', inspired by [1] and [2].
 
-  [1] C. E. Leierson and T. B. Schardl. A Work-Efficient Parallel Breadth-First
+  [1] Y. Zhang and E. A. Hansen. Parallel Breadth-First Heuristic Search on a
+  Shared-Memory Architecture. In AAAI Workshop on Heuristic Search, Memory-Based
+  Heuristics and Their Applications, 2006.
+  [2] C. E. Leierson and T. B. Schardl. A Work-Efficient Parallel Breadth-First
   Search Algorithm (or How to Cope with the Nondeterminism of Reducers). In
   SPAA'10, 2010."
   (loop [bag (new-bag [src])]
