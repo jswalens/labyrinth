@@ -17,27 +17,34 @@
 ;(def log println)
 (defn log [& _] nil)
 
-(defnp expand-point [local-grid {x :x y :y z :z :as point} params]
+(defn score [local-grid current next params]
+  (let [current-value @(grid/get-point local-grid current)
+        directional-costs
+          (for [[dir cost] [[:x :x-cost] [:y :y-cost] [:z :z-cost]]]
+            (if (not= (dir current) (dir next)) ; changed in this direction
+              (cost params)
+              0))]
+    (+ current-value (reduce + directional-costs))))
+
+(defn expand-point [local-grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
   A neighbor is still to be expanded if it not full (i.e. a wall), and either:
   1. has no path to it yet (it is empty), or
   2. has a longer path to it (its current value > value of `point` + cost to go
      to it).
-  This function returns {:grid updated-grid :new-points expanded-neighbors}"
+  This function returns the neighbors to expand next."
   (dosync
-    (let [{:keys [x-cost y-cost z-cost]}
-            params
-          current-value
-            @(grid/get-point local-grid point)
-          all-neighbors
-            [{:x (+ x 1) :y    y    :z    z    :value (+ current-value x-cost)}
-             {:x (- x 1) :y    y    :z    z    :value (+ current-value x-cost)}
-             {:x    x    :y (+ y 1) :z    z    :value (+ current-value y-cost)}
-             {:x    x    :y (- y 1) :z    z    :value (+ current-value y-cost)}
-             {:x    x    :y    y    :z (+ z 1) :value (+ current-value z-cost)}
-             {:x    x    :y    y    :z (- z 1) :value (+ current-value z-cost)}]
+    (let [all-neighbors
+            [{:x (+ x 1) :y    y    :z    z   }
+             {:x (- x 1) :y    y    :z    z   }
+             {:x    x    :y (+ y 1) :z    z   }
+             {:x    x    :y (- y 1) :z    z   }
+             {:x    x    :y    y    :z (+ z 1)}
+             {:x    x    :y    y    :z (- z 1)}]
           valid-neighbors
             (filter #(grid/is-point-valid? local-grid %) all-neighbors)
+          neighbors-with-value
+            (map #(assoc % :value (score local-grid point % params)) valid-neighbors)
           neighbors-to-expand
             (filter
               (fn [neighbor]
@@ -47,10 +54,10 @@
                     (or
                       (= nb-current-value :empty)
                       (< (:value neighbor) nb-current-value)))))
-              valid-neighbors)]
+              neighbors-with-value)]
       (doseq [neighbor neighbors-to-expand]
         (ref-set (grid/get-point local-grid neighbor) (:value neighbor)))
-      {:grid local-grid :new-points neighbors-to-expand})))
+      neighbors-to-expand)))
 
 (defn min-grid-point [a b]
   (cond
@@ -83,8 +90,7 @@
         (let [current (p :pop (.pop queue))]
           (if (coordinate/equal? current dst)
             {:grid (grid/grid-map local-grid deref) :reachable true} ; dst reached
-            (let [{updated-grid :grid new-points :new-points}
-                    (expand-point local-grid current params)]
+            (let [new-points (expand-point local-grid current params)]
               (p :addAll (.addAll queue new-points))
               (recur))))))))
 
