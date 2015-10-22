@@ -1,6 +1,7 @@
 (ns labyrinth.router
   (:require [labyrinth.coordinate :as coordinate]
             [labyrinth.grid :as grid]
+            [taoensso.timbre :as timbre]
             [taoensso.timbre.profiling :refer [defnp p]])
   (:import [java.io StringWriter]
            [java.util LinkedList]))
@@ -17,6 +18,8 @@
 ;(def log println)
 (defn log [& _] nil)
 
+(timbre/set-level! :fatal)
+
 (defn score [local-grid current next params]
   (let [current-value @(grid/get-point local-grid current)
         directional-costs
@@ -24,7 +27,9 @@
             (if (not= (dir current) (dir next)) ; changed in this direction
               (cost params)
               0))]
-    (+ current-value (reduce + directional-costs))))
+    (+ current-value
+       (reduce + directional-costs)
+       (grid/get-point-cost local-grid next))))
 
 (defn expand-point [local-grid {x :x y :y z :z :as point} params]
   "Expands one step past `point`, i.e. to the neighbors of `point`.
