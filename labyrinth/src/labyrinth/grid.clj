@@ -1,5 +1,6 @@
 (ns labyrinth.grid
-  (:require [labyrinth.coordinate :as coordinate]))
+  (:require [random]
+            [labyrinth.coordinate :as coordinate]))
 
 (defn alloc-shared [width height depth]
   "Returns an empty shared grid of the requested size.
@@ -10,6 +11,7 @@
   {:width  width
    :height height
    :depth  depth
+   :costs  (vec (repeatedly (* width height depth) #(random/rand-int 100)))
    :points (vec (repeatedly (* width height depth) #(ref :empty)))})
 
 (defn alloc-local [width height depth]
@@ -21,6 +23,7 @@
   {:width  width
    :height height
    :depth  depth
+   :costs  (vec (repeatedly (* width height depth) #(random/rand-int 100)))
    :points (vec (repeat (* width height depth) :empty))})
 
 (defn copy [grid]
@@ -34,6 +37,7 @@
     {:width  (:width grid)
      :height (:height grid)
      :depth  (:depth grid)
+     :costs  (:costs grid)
      :points (vec (map deref (:points grid)))}))
 
 (defn is-point-valid? [grid {x :x y :y z :z}]
@@ -68,6 +72,11 @@
   Works on local grid, not on shared one (there, the point is a ref and should
   be updated directly)."
   (assoc-in local-grid [:points (get-point-index local-grid point)] v))
+
+(defn get-point-cost [grid point]
+  "Get the cost associated to a point in the grid, or throws an exception if
+  point not found. Works on local and shared grids."
+  (nth (:costs grid) (get-point-index grid point)))
 
 (defn grid-map [grid f]
   "Map over points in grid, call (fn p) for each point."
