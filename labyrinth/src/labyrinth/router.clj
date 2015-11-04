@@ -1,6 +1,7 @@
 (ns labyrinth.router
   (:require [labyrinth.coordinate :as coordinate]
-            [labyrinth.grid :as grid])
+            [labyrinth.grid :as grid]
+            [labyrinth.util :refer [dosync-tracked]])
   (:import [java.io StringWriter]
            [java.util LinkedList]))
 
@@ -164,7 +165,7 @@
 (defn find-path [[src dst] shared-grid params]
   "Tries to find a path. Returns path if one was found, nil otherwise.
   A path is a vector of points."
-  (dosync
+  (dosync-tracked
     (let [{reachable? :reachable local-grid :grid}
             (expand src dst (grid/copy shared-grid) params)]
       (if reachable?
