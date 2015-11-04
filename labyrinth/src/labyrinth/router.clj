@@ -1,8 +1,6 @@
 (ns labyrinth.router
   (:require [labyrinth.coordinate :as coordinate]
-            [labyrinth.grid :as grid]
-            [taoensso.timbre :as timbre]
-            [taoensso.timbre.profiling :refer [defnp p]])
+            [labyrinth.grid :as grid])
   (:import [java.io StringWriter]
            [java.util HashSet]))
 
@@ -17,8 +15,6 @@
 
 ;(def log println)
 (defn log [& _] nil)
-
-(timbre/set-level! :fatal)
 
 (defn score [local-grid current next params]
   (let [current-value @(grid/get-point local-grid current)
@@ -87,37 +83,33 @@
   ([] (HashSet.))
   ([init] (let [bag (HashSet.)] (.addAll bag init) bag)))
 
-(defnp expand-step [bag dst local-grid params]
+(defn expand-step [bag dst local-grid params]
   (let [partition-size
           (max (int (/ (count bag) 4)) 20)
         partitions
-          (p :expand-step-partition
-            (doall (partition partition-size partition-size (list) bag)))
+          (doall (partition partition-size partition-size (list) bag))
         partial-bags
-          (p :expand-step-partials
-            (doall
-              (parallel-for-all [partition partitions]
-                (p :expand-step-partial
-                  (let [partial-bag (HashSet.)]
-                    (loop [points partition]
-                      (if (empty? points)
-                        {:found false :bag partial-bag}
-                        (let [current (first points)]
-                          (if (coordinate/equal? current dst)
-                            {:found true :bag partial-bag}
-                            (do
-                              (.addAll partial-bag (expand-point local-grid current params))
-                              (recur (rest points))))))))))))
+          (doall
+            (parallel-for-all [partition partitions]
+              (let [partial-bag (HashSet.)]
+                (loop [points partition]
+                  (if (empty? points)
+                    {:found false :bag partial-bag}
+                    (let [current (first points)]
+                      (if (coordinate/equal? current dst)
+                        {:found true :bag partial-bag}
+                        (do
+                          (.addAll partial-bag (expand-point local-grid current params))
+                          (recur (rest points))))))))))
         result
-          (p :expand-step-reduce
-            (reduce
-              (fn [{found-1 :found bag-1 :bag} {found-2 :found bag-2 :bag}]
-                (.addAll bag-1 bag-2)
-                {:found (or found-1 found-2) :bag bag-1})
-              partial-bags))]
+          (reduce
+            (fn [{found-1 :found bag-1 :bag} {found-2 :found bag-2 :bag}]
+              (.addAll bag-1 bag-2)
+              {:found (or found-1 found-2) :bag bag-1})
+            partial-bags)]
     result))
 
-(defnp expand-bag [local-grid src dst params]
+(defn expand-bag [local-grid src dst params]
   "Returns true if a path from src to dst was found, false if no path was
   found. Modifies local-grid in both cases.
 
@@ -137,25 +129,22 @@
           true
           (recur new-bag))))))
 
-(defnp expand [src dst shared-grid params]
+(defn expand [src dst shared-grid params]
   "Try to find a path from `src` to `dst` through `shared-grid`.
   Returns `{:grid grid :reachable found}`, where `grid` is the local grid and
   `found` is true if the destination was reached. (There might be multiple
   paths from src to dst in the grid.)"
-  (log "src" src)
-  (log "dst" dst)
   (let [local-grid
-          (as-> (p :grid-copy (grid/copy shared-grid)) g
+          (as-> (grid/copy shared-grid) g
             (grid/set-point g src 0)        ; src = 0
             (grid/set-point g dst :empty)   ; dst = empty
-            (p :ref-grid (grid/grid-map g
-              #(ref % :resolve (fn [o p c] (min-grid-point p c))))))
+            (grid/grid-map g
+              #(ref % :resolve (fn [o p c] (min-grid-point p c)))))
         reachable
-          (p :outer-expand
-            (expand-bag local-grid src dst params))]
+          (expand-bag local-grid src dst params)]
     {:grid local-grid :reachable reachable}))
 
-(defnp next-steps [local-grid current-step bend-cost]
+(defn next-steps [local-grid current-step bend-cost]
   "All possible next steps after the current one, and their cost.
   Returns list of elements of the format:
   `{:step {:point next-point :direction dir} :cost 123}`"
@@ -174,7 +163,7 @@
             nil))))
     (filter identity))) ; filter out nil
 
-(defnp find-cheapest-step [local-grid current-step params]
+(defn find-cheapest-step [local-grid current-step params]
   "Returns least costly step amongst possible next steps.
   A step is of the form `{:point next-point :direction dir}` where `next-point`
   is a neighbor of `current` and `dir` is e.g. `:x-pos`."
@@ -194,7 +183,7 @@
           (:step cheapest)
           (log "no cheap step found"))))))
 
-(defnp traceback [local-grid dst params]
+(defn traceback [local-grid dst params]
   "Go back from dst to src, along an optimal path, and mark these cells as
   filled in the local grid. "
   (loop [current-step {:point dst :direction :zero}
@@ -211,7 +200,7 @@
             (recur next-step (cons current-point path)))
           (log "traceback failed"))))))
 
-(defnp find-work [queue]
+(defn find-work [queue]
   "In a transaction, pops element of queue and returns it, or returns nil
   if queue is empty."
   (let [work
@@ -224,22 +213,21 @@
     (log "found work" work)
     work))
 
-(defnp find-path [[src dst] shared-grid params]
+(defn find-path [[src dst] shared-grid params]
   "Tries to find a path. Returns path if one was found, nil otherwise.
   A path is a vector of points."
   (dosync
-    (p :find-path-tx
-      (let [{reachable? :reachable local-grid :grid}
-              (expand src dst shared-grid params)]
-        (if reachable?
-          (let [path (traceback local-grid dst params)]
-            (when path
-              (p :add-path (grid/add-path shared-grid path)))
-                ; may fail and cause rollback
-            path)
-          (log "expansion failed"))))))
+    (let [{reachable? :reachable local-grid :grid}
+            (expand src dst shared-grid params)]
+      (if reachable?
+        (let [path (traceback local-grid dst params)]
+          (when path
+            (grid/add-path shared-grid path))
+            ; may fail and cause rollback
+          path)
+        (log "expansion failed")))))
 
-(defnp solve [params maze paths-per-thread]
+(defn solve [params maze paths-per-thread]
   "Solve maze, append found paths to `paths-per-thread`."
   (let [my-paths
           ; find paths until no work left
