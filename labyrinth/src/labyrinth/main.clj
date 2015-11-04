@@ -7,6 +7,7 @@
 (def default-params
   {:bend-cost  1
    :n-threads  1
+   :n-partitions 4
    :x-cost     1
    :y-cost     1
    :z-cost     2
@@ -16,15 +17,16 @@
 (def usage
 "Usage: ./labyrinth [options]
 
-Options:                            (defaults)
+Options:                              (defaults)
 
-    b <INT>    [b]end cost          (1)
-    i <FILE>   [i]nput file name    (labyrinth/inputs/random-x32-y32-z3-n96.txt)
-    p          [p]rint routed maze  (false)
-    t <UINT>   Number of [t]hreads  (1)
-    x <UINT>   [x] movement cost    (1)
-    y <UINT>   [y] movement cost    (1)
-    z <UINT>   [z] movement cost    (2)")
+    b <INT>    [b]end cost            (1)
+    i <FILE>   [i]nput file name      (labyrinth/inputs/random-x32-y32-z3-n96.txt)
+    p          [p]rint routed maze    (false)
+    t <UINT>   Number of [t]hreads    (1)
+    a <UINT>   Number of p[a]rtitions (4)
+    x <UINT>   [x] movement cost      (1)
+    y <UINT>   [y] movement cost      (1)
+    z <UINT>   [z] movement cost      (2)")
 
 (def log println)
 
@@ -39,6 +41,7 @@ Options:                            (defaults)
               (case (.substring arg 1)
                 "b" #(assoc res :bend-cost (str->int %))
                 "t" #(assoc res :n-threads (str->int %))
+                "a" #(assoc res :n-partitions (str->int %))
                 "x" #(assoc res :x-cost (str->int %))
                 "y" #(assoc res :y-cost (str->int %))
                 "z" #(assoc res :z-cost (str->int %))

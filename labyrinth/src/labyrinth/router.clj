@@ -86,7 +86,9 @@
 
 (defn expand-step [bag dst local-grid params]
   (let [partition-size
-          (max (int (/ (count bag) 4)) 20)
+          ; divide bag in (:n-partitions params) (default 4), but with minimum
+          ; size 20
+          (max (int (/ (count bag) (:n-partitions params))) 20)
         partitions
           (doall (partition partition-size partition-size (list) bag))
         partial-bags
