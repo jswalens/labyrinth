@@ -2,7 +2,7 @@
   (:gen-class)
   (:require [labyrinth.maze :as maze]
             [labyrinth.router :as router]
-            [labyrinth.util :refer [str->int]]))
+            [labyrinth.util :refer [str->int time print-tx-stats]]))
 
 (def default-params
   {:bend-cost  1
@@ -64,14 +64,6 @@ Options:                            (defaults)
         result
         (assoc default-params :arg-error true))))
 
-(defmacro time [expr]
-  "Based on Clojure's time, but returns {:time time :result value},
-  instead of printing to *out*."
-  `(let [start# (. System (nanoTime))
-         ret#   ~expr
-         time#  (/ (double (- (. System (nanoTime)) start#)) 1000000.0)]
-     {:time time# :result ret#}))
-
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
   (let [params (parse-args args)]
@@ -97,6 +89,7 @@ Options:                            (defaults)
         (println "Time per thread:")
         (doseq [t (:result results)]
           (println " " (:time t) "milliseconds"))
+        (print-tx-stats)
         ; verification of paths, also prints grid if asked to
         ; Note: (apply concat ...) flattens once, i.e. it turns the list of
         ; list of paths into a single list of paths (but each path is still a
