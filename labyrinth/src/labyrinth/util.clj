@@ -1,4 +1,5 @@
-(ns labyrinth.util)
+(ns labyrinth.util
+  (:refer-clojure :exclude [time]))
 
 (defn str->int [s]
   "Converts s to integer, returns nil in case of error"

@@ -1,5 +1,6 @@
 (ns labyrinth.main
   (:gen-class)
+  (:refer-clojure :exclude [time])
   (:require [labyrinth.maze :as maze]
             [labyrinth.router :as router]
             [labyrinth.util :refer [str->int time print-tx-stats]]))

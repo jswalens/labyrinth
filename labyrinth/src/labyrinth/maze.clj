@@ -1,4 +1,5 @@
 (ns labyrinth.maze
+  (:refer-clojure :exclude [read])
   (:require [labyrinth.grid :as grid]
             [labyrinth.coordinate :as coordinate]
             [labyrinth.util :refer [str->int]]))

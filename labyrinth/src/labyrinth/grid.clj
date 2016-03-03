@@ -1,4 +1,5 @@
 (ns labyrinth.grid
+  (:refer-clojure :exclude [print])
   (:require [random]
             [labyrinth.coordinate :as coordinate]))
 
