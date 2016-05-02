@@ -71,38 +71,43 @@ Options:                              (defaults)
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
   (let [params (parse-args args)]
-    (if (or (:arg-error params) (nil? params))
-      (do (println "Error parsing arguments")
-          (println "Params:" params)
-          (println usage))
-      (let [maze
-              (maze/read (:input-file params))
-            paths-per-thread
-              (ref [])
-            results
-              (time ; time everything
-                (doall
-                  (pmap
-                    (fn [_]
-                      (time ; timer per thread
-                        (router/solve params maze paths-per-thread)))
-                    (range (:n-threads params)))))]
-        ;(log "Paths (per thread):" @paths-per-thread)
-        (println "Paths routed    =" (reduce + (map count @paths-per-thread)))
-        (println "Elapsed time    =" (:time results) "milliseconds")
-        (println "Time per thread:")
-        (doseq [t (:result results)]
-          (println " " (:time t) "milliseconds"))
-        (print-tx-stats)
-        ; verification of paths, also prints grid if asked to
-        ; Note: (apply concat ...) flattens once, i.e. it turns the list of
-        ; list of paths into a single list of paths (but each path is still a
-        ; list of points)
-        (if (maze/check-paths maze (apply concat @paths-per-thread)
-              (:print params))
-          (println "Verification passed.")
-          (println "Verification FAILED!"))
-        (shutdown-agents)))))
+    (when (or (:arg-error params) (nil? params))
+      (println "Error parsing arguments")
+      (println "Params:" params)
+      (println usage)
+      (System/exit 1))
+    (when-not (.exists (clojure.java.io/as-file (:input-file params)))
+      (println "The input file" (:input-file params) "does not exist.")
+      (println "Specify an input file using the command line parameter -i.")
+      (System/exit 2))
+    (let [maze
+            (maze/read (:input-file params))
+          paths-per-thread
+            (ref [])
+          results
+            (time ; time everything
+              (doall
+                (pmap
+                  (fn [_]
+                    (time ; timer per thread
+                      (router/solve params maze paths-per-thread)))
+                  (range (:n-threads params)))))]
+      ;(log "Paths (per thread):" @paths-per-thread)
+      (println "Paths routed    =" (reduce + (map count @paths-per-thread)))
+      (println "Elapsed time    =" (:time results) "milliseconds")
+      (println "Time per thread:")
+      (doseq [t (:result results)]
+        (println " " (:time t) "milliseconds"))
+      (print-tx-stats)
+      ; verification of paths, also prints grid if asked to
+      ; Note: (apply concat ...) flattens once, i.e. it turns the list of
+      ; list of paths into a single list of paths (but each path is still a
+      ; list of points)
+      (if (maze/check-paths maze (apply concat @paths-per-thread)
+            (:print params))
+        (println "Verification passed.")
+        (println "Verification FAILED!"))
+      (shutdown-agents))))
 
 ; To run manually:
 ;(main *command-line-args*)
