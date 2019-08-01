@@ -63,14 +63,14 @@
 (defn get-point [grid point]
   "Get a point in the grid, or throws an exception if not found.
   Works on local and shared grids (for shared, it will return a ref)."
-  (nth (:points grid) (get-point-index grid point)))
+  @(nth (:points grid) (get-point-index grid point)))
 
 ; C++ functions grid_isPointEmpty and grid_isPointFull are embedded directly
 ; where they are used.
 
 (defn set-point [grid point v]
   "Set a point in the grid to `v`."
-  (ref-set (get-point grid point) v))
+  (ref-set (nth (:points grid) (get-point-index grid point)) v))
 
 (defn get-point-cost [grid point]
   "Get the cost associated to a point in the grid, or throws an exception if
@@ -102,6 +102,6 @@
     (doseq [x (range (:width grid))]
       (doseq [y (range (:height grid))]
         (clojure.core/print (print-point
-          @(get-point grid (coordinate/alloc x y z)))))
+          (get-point grid (coordinate/alloc x y z)))))
       (println))
     (println)))
