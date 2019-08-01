@@ -87,24 +87,24 @@
         ; check whether start = src or dst (a point can be both a src of one
         ; path and dst of other)
         errors1
-          (if (not (src-or-dst? @(grid/get-point test-grid (first path))))
+          (if (not (src-or-dst? (grid/get-point test-grid (first path))))
             (conj errors (str "start of path " i " is not a source (but "
-              @(grid/get-point test-grid (first path)) ")"))
+              (grid/get-point test-grid (first path)) ")"))
             errors)
         ; check whether end = src or dst (a point can be both a src of one
               ; path and dst of other)
         errors2
-          (if (not (src-or-dst? @(grid/get-point test-grid (last path))))
+          (if (not (src-or-dst? (grid/get-point test-grid (last path))))
             (conj errors1 (str "end of path " i " is not a destination (but "
-              @(grid/get-point test-grid (last path)) ")"))
+              (grid/get-point test-grid (last path)) ")"))
             errors1)
         ; check if points along path are not empty, if not, fill with "i"
         errors3
           (reduce
             (fn [errors point]
-              (if (not= @(grid/get-point test-grid point) :empty)
+              (if (not= (grid/get-point test-grid point) :empty)
                 (conj errors (str "point " point " is used by two paths: "
-                  @(grid/get-point test-grid point) " and " i))
+                  (grid/get-point test-grid point) " and " i))
                 (do
                   (grid/set-point test-grid point i)
                   errors)))

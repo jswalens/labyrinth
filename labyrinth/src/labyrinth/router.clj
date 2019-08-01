@@ -18,7 +18,7 @@
 (defn log [& _] nil)
 
 (defn score [local-grid current next params]
-  (let [current-value @(grid/get-point local-grid current)
+  (let [current-value (grid/get-point local-grid current)
         directional-costs
           (for [[dir cost] [[:x :x-cost] [:y :y-cost] [:z :z-cost]]]
             (if (not= (dir current) (dir next)) ; changed in this direction
@@ -50,7 +50,7 @@
           neighbors-to-expand
             (filter
               (fn [neighbor]
-                (let [nb-current-value @(grid/get-point local-grid neighbor)]
+                (let [nb-current-value (grid/get-point local-grid neighbor)]
                   (and
                     (not= nb-current-value :full)
                     (or
@@ -145,11 +145,11 @@
       (fn [dir]
         (let [point (coordinate/step-to dir (:point current-step))]
           (if (and (grid/is-point-valid? local-grid point)
-                   (not (= @(grid/get-point local-grid point) :empty))
-                   (not (= @(grid/get-point local-grid point) :full)))
+                   (not (= (grid/get-point local-grid point) :empty))
+                   (not (= (grid/get-point local-grid point) :full)))
             (let [bending? (not= dir (:direction current-step))
                   b-cost   (if bending? bend-cost 0)
-                  cost     (+ @(grid/get-point local-grid point) b-cost)]
+                  cost     (+ (grid/get-point local-grid point) b-cost)]
               {:step {:point point :direction dir} :cost cost})
             nil))))
     (filter identity))) ; filter out nil
@@ -160,7 +160,7 @@
   is a neighbor of `current` and `dir` is e.g. `:x-pos`."
   ; first, try with bend cost
   (let [current-val
-          @(grid/get-point local-grid (:point current-step))
+          (grid/get-point local-grid (:point current-step))
         steps
           (next-steps local-grid current-step (:bend-cost params))
         cheapest
@@ -180,7 +180,7 @@
   (loop [current-step {:point dst :direction :zero}
          path         (list)]
     (let [current-point (:point current-step)]
-      (if (= @(grid/get-point local-grid current-point) 0)
+      (if (= (grid/get-point local-grid current-point) 0)
         ; current-point = source: we're done
         (cons current-point path)
         ; find next point along cheapest step
