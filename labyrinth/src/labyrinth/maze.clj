@@ -66,7 +66,7 @@
   (let [in   (read-input-file input-file-name)
         work (to-list (sort-by identity coordinate/compare-pairs
                (:work-list in)))
-        grid (grid/alloc-shared (:width in) (:height in) (:depth in))]
+        grid (grid/alloc (:width in) (:height in) (:depth in))]
     (dosync ; Indicate walls, srcs, and dsts as full.
       (doseq [pt (concat (:walls in) (:srcs in) (:dsts in))]
         (ref-set (grid/get-point grid pt) :full)))
@@ -87,29 +87,28 @@
         ; check whether start = src or dst (a point can be both a src of one
         ; path and dst of other)
         errors1
-          (if (not (src-or-dst? (grid/get-point test-grid (first path))))
+          (if (not (src-or-dst? @(grid/get-point test-grid (first path))))
             (conj errors (str "start of path " i " is not a source (but "
-              (grid/get-point test-grid (first path)) ")"))
+              @(grid/get-point test-grid (first path)) ")"))
             errors)
         ; check whether end = src or dst (a point can be both a src of one
               ; path and dst of other)
         errors2
-          (if (not (src-or-dst? (grid/get-point test-grid (last path))))
+          (if (not (src-or-dst? @(grid/get-point test-grid (last path))))
             (conj errors1 (str "end of path " i " is not a destination (but "
-              (grid/get-point test-grid (last path)) ")"))
+              @(grid/get-point test-grid (last path)) ")"))
             errors1)
         ; check if points along path are not empty, if not, fill with "i"
-        {test-grid2 :grid errors3 :errors}
+        errors3
           (reduce
-            (fn [{test-grid :grid errors :errors} point]
-              (if (not= (grid/get-point test-grid point) :empty)
-                {:grid test-grid
-                 :errors (conj errors (str "point " point
-                   " is used by two paths: " (grid/get-point test-grid point)
-                   " and " i))}
-                {:grid (grid/set-point test-grid point i)
-                 :errors errors}))
-            {:grid test-grid :errors errors2}
+            (fn [errors point]
+              (if (not= @(grid/get-point test-grid point) :empty)
+                (conj errors (str "point " point " is used by two paths: "
+                  @(grid/get-point test-grid point) " and " i))
+                (do
+                  (grid/set-point test-grid point i)
+                  errors)))
+            errors2
             (rest (butlast path)))
         ; check whether all two subsequent points in the path are adjacent
         errors4
@@ -122,49 +121,35 @@
                 errors))
             errors3
             (range (dec (count path))))]
-    {:grid test-grid2 :errors errors4}))
+    errors4))
 
 (defn check-paths [maze paths print?]
   "Check whether paths (single list of paths, each path is a list of points) are
   valid for maze. Prints maze with paths if `print?` is true."
-  (let [shared-grid
-          (:grid maze)
-        {w :width h :height d :depth}
-          shared-grid
-        test-grid
-          (grid/alloc-local w h d) ; starts with :empty, fills up with path ids
-        {grid-with-paths :grid errors :errors}
-          (as->
-            {:grid test-grid :errors []}
-            $
-            ; mark walls as :full
-            (reduce
-              (fn [{test-grid :grid errors :errors} wall-pt]
-                {:grid (grid/set-point test-grid wall-pt :wall) :errors errors})
-              $
-              (:walls maze))
-            ; mark sources as :full
-            (reduce
-              (fn [{test-grid :grid errors :errors} src]
-                {:grid (grid/set-point test-grid src :src) :errors errors})
-              $
-              (:src-vector maze))
-            ; mark destinations as :full
-            (reduce
-              (fn [{test-grid :grid errors :errors} dst]
-                {:grid (grid/set-point test-grid dst :dst) :errors errors})
-              $
-              (:dst-vector maze))
-            ; make sure path is contiguous and does not overlap, mark it with
-            ; its index
-            (reduce
-              (fn [{test-grid :grid errors :errors} [i path]]
-                (check-path test-grid i path errors))
-              $
-              (map-indexed (fn [i p] [(inc i) p]) paths)))]
-    (when-not (empty? errors)
-      (println "Some errors occured:")
-      (doseq [e errors] (println "* " e)))
-    (if print?
-      (grid/print grid-with-paths))
-    (empty? errors)))
+  (let [shared-grid                   (:grid maze)
+        {w :width h :height d :depth} shared-grid
+        test-grid                     (grid/alloc w h d)]
+        ; starts with :empty, fills up with path ids
+    (dosync
+      ; mark walls as :full
+      (doseq [wall-pt (:walls maze)]
+        (grid/set-point test-grid wall-pt :wall))
+      ; mark sources as :full
+      (doseq [src (:src-vector maze)]
+        (grid/set-point test-grid src :src))
+      ; mark destinations as :full
+      (doseq [dst (:dst-vector maze)]
+        (grid/set-point test-grid dst :dst))
+      (let [errors  ; make sure path is contiguous and does not overlap, by
+                    ; marking it with its index
+              (reduce
+                (fn [errors [i path]]
+                  (check-path test-grid i path errors))
+                []
+                (map-indexed (fn [i p] [(inc i) p]) paths))]
+        (when-not (empty? errors)
+          (println "Some errors occured:")
+          (doseq [e errors] (println "* " e)))
+        (if print?
+          (grid/print test-grid))
+        (empty? errors)))))

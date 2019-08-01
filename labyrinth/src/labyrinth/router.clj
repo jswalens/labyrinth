@@ -61,35 +61,23 @@
         (ref-set (grid/get-point local-grid neighbor) (:value neighbor)))
       neighbors-to-expand)))
 
-(defn min-grid-point [a b]
-  (cond
-    (= a :full)  :full
-    (= b :full)  :full
-    (= a :empty) b
-    (= b :empty) a
-    :else        (min a b)))
-
-(defn expand [src dst local-grid-initial params]
-  "Try to find a path from `src` to `dst` through `local-grid-initial`.
+(defn expand [src dst shared-grid params]
+  "Try to find a path from `src` to `dst` through `shared-grid`.
   Returns `{:grid grid :reachable found}`, where `grid` is the updated grid and
   `found` is true if the destination was reached. (There might be multiple
   paths from src to dst in the grid.)"
   (let [queue (LinkedList.)
-        local-grid
-          (-> local-grid-initial
-            (grid/set-point src 0)        ; src = 0
-            (grid/set-point dst :empty)   ; dst = empty
-            (grid/grid-map
-              #(ref % :resolve (fn [o p c] (min-grid-point p c)))))]
-              ; make each cell a ref with custom resolve function min-grid-point
+        local-grid (grid/copy-local shared-grid)]
+    (grid/set-point local-grid src 0)
+    (grid/set-point local-grid dst :empty)
     (.add queue src)
     (loop []
       ;(log "expansion queue" queue)
       (if (empty? queue)
-        {:grid (grid/grid-map local-grid deref) :reachable false} ; no path
+        {:grid local-grid :reachable false} ; no path
         (let [current (.pop queue)]
           (if (coordinate/equal? current dst)
-            {:grid (grid/grid-map local-grid deref) :reachable true} ; dst reached
+            {:grid local-grid :reachable true} ; dst reached
             (let [new-points (expand-point local-grid current params)]
               (.addAll queue new-points)
               (recur))))))))
@@ -104,11 +92,11 @@
       (fn [dir]
         (let [point (coordinate/step-to dir (:point current-step))]
           (if (and (grid/is-point-valid? local-grid point)
-                   (not (= (grid/get-point local-grid point) :empty))
-                   (not (= (grid/get-point local-grid point) :full)))
+                   (not (= @(grid/get-point local-grid point) :empty))
+                   (not (= @(grid/get-point local-grid point) :full)))
             (let [bending? (not= dir (:direction current-step))
                   b-cost   (if bending? bend-cost 0)
-                  cost     (+ (grid/get-point local-grid point) b-cost)]
+                  cost     (+ @(grid/get-point local-grid point) b-cost)]
               {:step {:point point :direction dir} :cost cost})
             nil))))
     (filter identity))) ; filter out nil
@@ -119,7 +107,7 @@
   is a neighbor of `current` and `dir` is e.g. `:x-pos`."
   ; first, try with bend cost
   (let [current-val
-          (grid/get-point local-grid (:point current-step))
+          @(grid/get-point local-grid (:point current-step))
         steps
           (next-steps local-grid current-step (:bend-cost params))
         cheapest
@@ -140,7 +128,7 @@
          grid         local-grid
          path         (list)]
     (let [current-point (:point current-step)]
-      (if (= (grid/get-point local-grid current-point) 0)
+      (if (= @(grid/get-point local-grid current-point) 0)
         ; current-point = source: we're done
         (cons current-point path)
         ; find next point along cheapest step
@@ -167,7 +155,7 @@
   A path is a vector of points."
   (dosync-tracked
     (let [{reachable? :reachable local-grid :grid}
-            (expand src dst (grid/copy shared-grid) params)]
+            (expand src dst shared-grid params)]
       (if reachable?
         (let [path (traceback local-grid dst params)]
           (when path

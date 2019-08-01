@@ -3,7 +3,7 @@
   (:require [random]
             [labyrinth.coordinate :as coordinate]))
 
-(defn alloc-shared [width height depth]
+(defn alloc [width height depth]
   "Returns an empty shared grid of the requested size.
   Points are refs containing either :empty or :full.
 
@@ -15,22 +15,19 @@
    :costs  (vec (repeatedly (* width height depth) #(random/rand-int 100)))
    :points (vec (repeatedly (* width height depth) #(ref :empty)))})
 
-(defn alloc-local [width height depth]
-  "Returns an empty local grid of the requested size.
-  Points are either :empty or :full, not encapsulated in a ref.
+(defn min-grid-point [a b]
+  "Between two grid points `a` and `b`, return the minimum.
+  Order: :empty < 0 < 1 < ... < inf < :full."
+  (cond
+    (= a :full)  :full
+    (= b :full)  :full
+    (= a :empty) b
+    (= b :empty) a
+    :else        (min a b)))
 
-  The C++ version ensures the points are aligned in the cache, we don't do
-  this in Clojure."
-  {:width  width
-   :height height
-   :depth  depth
-   :costs  (vec (repeatedly (* width height depth) #(random/rand-int 100)))
-   :points (vec (repeat (* width height depth) :empty))})
-
-(defn copy [grid]
-  "Make a local grid, copying the given shared grid.
-  Points will be :empty, :full, or filled with a number; not encapsulated in a
-  ref.
+(defn copy-local [grid]
+  "Copy a shared grid to a local grid.
+  Points will be :empty, :full, or filled with a number.
 
   Again, unlike the C++ version we don't care about cache alignment.
   Also, this is like the C++ version with USE_EARLY_RELEASE false."
@@ -39,7 +36,10 @@
      :height (:height grid)
      :depth  (:depth grid)
      :costs  (:costs grid)
-     :points (vec (map deref (:points grid)))}))
+     :points (vec
+               (map
+                 #(ref (deref %) :resolve (fn [o p c] (min-grid-point p c)))
+                 (:points grid)))}))
 
 (defn is-point-valid? [grid {x :x y :y z :z}]
   "Is the point valid, i.e. within the boundaries of `grid`?"
@@ -68,11 +68,10 @@
 ; C++ functions grid_isPointEmpty and grid_isPointFull are embedded directly
 ; where they are used.
 
-(defn set-point [local-grid point v]
-  "Set a point in the grid to `v`, returns updated grid.
-  Works on local grid, not on shared one (there, the point is a ref and should
-  be updated directly)."
-  (assoc-in local-grid [:points (get-point-index local-grid point)] v))
+(defn set-point [grid point v]
+  "Set a point in the grid to `v`."
+  (ref-set (get-point grid point) v))
+  ; TODO use this in other places, e.g. add-path below
 
 (defn get-point-cost [grid point]
   "Get the cost associated to a point in the grid, or throws an exception if
@@ -104,6 +103,6 @@
     (doseq [x (range (:width grid))]
       (doseq [y (range (:height grid))]
         (clojure.core/print (print-point
-          (get-point grid (coordinate/alloc x y z)))))
+          @(get-point grid (coordinate/alloc x y z)))))
       (println))
     (println)))
