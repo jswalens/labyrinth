@@ -79,49 +79,44 @@
       (:srcs in)
       (:dsts in))))
 
-(defn- check-path [test-grid i path errors]
-  "Checks whether the given path is correct, and marks it with `i`.
-  Updates errors if it isn't."
+(defn- check-path [test-grid i path]
+  "Checks whether the given path is correct, and marks it with `i`. Returns
+  errors."
   (let [src-or-dst?  ; is p src or dst?
           (fn [p] (or (= p :src) (= p :dst)))
         ; check whether start = src or dst (a point can be both a src of one
         ; path and dst of other)
-        errors1
+        src-error
           (if (not (src-or-dst? (grid/get-point test-grid (first path))))
-            (conj errors (str "start of path " i " is not a source (but "
+            (str "start of path " i " is not a source (but "
               (grid/get-point test-grid (first path)) ")"))
-            errors)
         ; check whether end = src or dst (a point can be both a src of one
-              ; path and dst of other)
-        errors2
+        ; path and dst of other)
+        dst-error
           (if (not (src-or-dst? (grid/get-point test-grid (last path))))
-            (conj errors1 (str "end of path " i " is not a destination (but "
+            (str "end of path " i " is not a destination (but "
               (grid/get-point test-grid (last path)) ")"))
-            errors1)
         ; check if points along path are not empty, if not, fill with "i"
-        errors3
-          (reduce
-            (fn [errors point]
+        path-errors
+          (map
+            (fn [point]
               (if (not= (grid/get-point test-grid point) :empty)
-                (conj errors (str "point " point " is used by two paths: "
-                  (grid/get-point test-grid point) " and " i))
+                (str "point " point " is used by two paths: "
+                  (grid/get-point test-grid point) " and " i)
                 (do
                   (grid/set-point test-grid point i)
-                  errors)))
-            errors2
+                  nil)))
             (rest (butlast path)))
         ; check whether all two subsequent points in the path are adjacent
-        errors4
-          (reduce
-            (fn [errors j]
+        adjancent-errors
+          (map
+            (fn [j]
               (if-not (coordinate/adjacent? (nth path j) (nth path (inc j)))
-                (conj errors (str "Points " j " (" (nth path j) ") and "
+                (str "Points " j " (" (nth path j) ") and "
                   (inc j) " (" (nth path (inc j)) ") of path " i
-                  " are not adjacent"))
-                errors))
-            errors3
+                  " are not adjacent")))
             (range (dec (count path))))]
-    errors4))
+    (filter some? (concat [src-error dst-error] path-errors adjancent-errors))))
 
 (defn check-paths [maze paths print?]
   "Check whether paths (single list of paths, each path is a list of points) are
@@ -142,14 +137,13 @@
         (grid/set-point test-grid dst :dst))
       (let [errors  ; make sure path is contiguous and does not overlap, by
                     ; marking it with its index
-              (reduce
-                (fn [errors [i path]]
-                  (check-path test-grid i path errors))
-                []
-                (map-indexed (fn [i p] [(inc i) p]) paths))]
+              (apply concat ; flatten
+                (map
+                  (fn [[i path]] (check-path test-grid i path))
+                  (map-indexed (fn [i p] [(inc i) p]) paths)))]
         (when-not (empty? errors)
           (println "Some errors occured:")
           (doseq [e errors] (println "* " e)))
         (if print?
-          (grid/print test-grid))
+          (dosync (grid/print test-grid)))
         (empty? errors)))))
