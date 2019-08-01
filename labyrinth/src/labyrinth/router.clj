@@ -61,14 +61,6 @@
         (ref-set (grid/get-point local-grid neighbor) (:value neighbor)))
       neighbors-to-expand)))
 
-(defn min-grid-point [a b]
-  (cond
-    (= a :full)  :full
-    (= b :full)  :full
-    (= a :empty) b
-    (= b :empty) a
-    :else        (min a b)))
-
 (defmacro for-all [seq-exprs body-expr]
   `(doall
     (for ~seq-exprs
@@ -137,15 +129,11 @@
   Returns `{:grid grid :reachable found}`, where `grid` is the local grid and
   `found` is true if the destination was reached. (There might be multiple
   paths from src to dst in the grid.)"
-  (let [local-grid
-          (as-> (grid/copy shared-grid) g
-            (grid/set-point g src 0)        ; src = 0
-            (grid/set-point g dst :empty)   ; dst = empty
-            (grid/grid-map g
-              #(ref % :resolve (fn [o p c] (min-grid-point p c)))))
-        reachable
-          (expand-bag local-grid src dst params)]
-    {:grid local-grid :reachable reachable}))
+  (let [local-grid (grid/copy-local shared-grid)]
+    (grid/set-point local-grid src 0)
+    (grid/set-point local-grid dst :empty)
+    {:grid local-grid
+     :reachable (expand-bag local-grid src dst params)}))
 
 (defn next-steps [local-grid current-step bend-cost]
   "All possible next steps after the current one, and their cost.
