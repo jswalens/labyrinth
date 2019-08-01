@@ -58,7 +58,7 @@
                       (< (:value neighbor) nb-current-value)))))
               neighbors-with-value)]
       (doseq [neighbor neighbors-to-expand]
-        (ref-set (grid/get-point local-grid neighbor) (:value neighbor)))
+        (grid/set-point local-grid neighbor (:value neighbor)))
       neighbors-to-expand)))
 
 (defn expand [src dst shared-grid params]
@@ -125,7 +125,6 @@
   "Go back from dst to src, along an optimal path, and mark these cells as
   filled in the local grid. "
   (loop [current-step {:point dst :direction :zero}
-         grid         local-grid
          path         (list)]
     (let [current-point (:point current-step)]
       (if (= @(grid/get-point local-grid current-point) 0)
@@ -133,8 +132,9 @@
         (cons current-point path)
         ; find next point along cheapest step
         (if-let [next-step (find-cheapest-step local-grid current-step params)]
-          (recur next-step (grid/set-point local-grid current-point :full)
-            (cons current-point path))
+          (do
+            (grid/set-point local-grid current-point :full)
+            (recur next-step (cons current-point path)))
           (log "traceback failed"))))))
 
 (defn find-work [queue]

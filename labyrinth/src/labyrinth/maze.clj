@@ -69,7 +69,7 @@
         grid (grid/alloc (:width in) (:height in) (:depth in))]
     (dosync ; Indicate walls, srcs, and dsts as full.
       (doseq [pt (concat (:walls in) (:srcs in) (:dsts in))]
-        (ref-set (grid/get-point grid pt) :full)))
+        (grid/set-point grid pt :full)))
     (println "Maze dimensions =" (:width in) "x" (:height in) "x" (:depth in))
     (println "Paths to route  =" (count work))
     (alloc
