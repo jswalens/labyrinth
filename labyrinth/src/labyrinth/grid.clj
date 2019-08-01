@@ -52,8 +52,7 @@
     (< z (:depth grid))))
 
 (defn get-point-index [grid {x :x y :y z :z}]
-  "Get the index of a 3D point in a 1D grid vector.
-  Works on local and shared grids."
+  "Get the index of a 3D point in a 1D grid vector."
   (+ x (* (+ y (* z (:height grid))) (:width grid))))
 
 ; C++ function grid_getPointIndices does the reverse of get-point-index:
@@ -61,8 +60,7 @@
 ; that as we always pass around the x,y,z coordinates.
 
 (defn get-point [grid point]
-  "Get a point in the grid, or throws an exception if not found.
-  Works on local and shared grids (for shared, it will return a ref)."
+  "Get a point in the grid, or throws an exception if not found."
   @(nth (:points grid) (get-point-index grid point)))
 
 ; C++ functions grid_isPointEmpty and grid_isPointFull are embedded directly
@@ -74,7 +72,7 @@
 
 (defn get-point-cost [grid point]
   "Get the cost associated to a point in the grid, or throws an exception if
-  point not found. Works on local and shared grids."
+  point not found."
   (nth (:costs grid) (get-point-index grid point)))
 
 (defn grid-map [grid f]
@@ -82,7 +80,7 @@
   (update-in grid [:points] (fn [points] (vec (map f points)))))
 
 (defn add-path [grid path]
-  "Set all points in `path` as full. Only works on shared grid."
+  "Set all points in `path` as full."
   (dosync
     (doseq [point path]
       (set-point grid point :full))))
