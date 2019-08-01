@@ -71,7 +71,6 @@
 (defn set-point [grid point v]
   "Set a point in the grid to `v`."
   (ref-set (get-point grid point) v))
-  ; TODO use this in other places, e.g. add-path below
 
 (defn get-point-cost [grid point]
   "Get the cost associated to a point in the grid, or throws an exception if
@@ -82,7 +81,7 @@
   "Set all points in `path` as full. Only works on shared grid."
   (dosync
     (doseq [point path]
-      (ref-set (get-point grid point) :full))))
+      (set-point grid point :full))))
 
 (defn- print-point [val]
   (case val

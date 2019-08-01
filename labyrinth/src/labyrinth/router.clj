@@ -58,7 +58,7 @@
                       (< (:value neighbor) nb-current-value)))))
               neighbors-with-value)]
       (doseq [neighbor neighbors-to-expand]
-        (ref-set (grid/get-point local-grid neighbor) (:value neighbor)))
+        (grid/set-point local-grid neighbor (:value neighbor)))
       neighbors-to-expand)))
 
 (defmacro for-all [seq-exprs body-expr]
@@ -179,15 +179,14 @@
   filled in the local grid. "
   (loop [current-step {:point dst :direction :zero}
          path         (list)]
-    (let [current-point     (:point current-step)
-          current-point-ref (grid/get-point local-grid current-point)]
-      (if (= @current-point-ref 0)
+    (let [current-point (:point current-step)]
+      (if (= @(grid/get-point local-grid current-point) 0)
         ; current-point = source: we're done
         (cons current-point path)
         ; find next point along cheapest step
         (if-let [next-step (find-cheapest-step local-grid current-step params)]
           (do
-            (ref-set current-point-ref :full)
+            (grid/set-point local-grid current-point :full)
             (recur next-step (cons current-point path)))
           (log "traceback failed"))))))
 
