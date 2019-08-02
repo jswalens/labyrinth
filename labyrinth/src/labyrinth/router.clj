@@ -63,9 +63,8 @@
 
 (defn expand [src dst local-grid params]
   "Try to find a path from `src` to `dst` through `local-grid`.
-  Returns `{:grid grid :reachable found}`, where `grid` is the updated grid and
-  `found` is true if the destination was reached. (There might be multiple
-  paths from src to dst in the grid.)"
+  Updates `local-grid` and returns true if the destination was reached. (There
+  might be multiple paths from src to dst in the grid.)"
   (grid/set-point local-grid src 0)
   (grid/set-point local-grid dst :empty)
   (let [queue (LinkedList.)]
@@ -73,10 +72,10 @@
     (loop []
       ;(log "expansion queue" queue)
       (if (empty? queue)
-        {:grid local-grid :reachable false} ; no path
+        false ; no path
         (let [current (.pop queue)]
           (if (coordinate/equal? current dst)
-            {:grid local-grid :reachable true} ; dst reached
+            true ; dst reached, local-grid updated
             (let [new-points (expand-point local-grid current params)]
               (.addAll queue new-points)
               (recur))))))))
@@ -153,8 +152,8 @@
   "Tries to find a path. Returns path if one was found, nil otherwise.
   A path is a vector of points."
   (dosync-tracked
-    (let [{reachable? :reachable local-grid :grid}
-            (expand src dst (grid/copy-local shared-grid) params)]
+    (let [local-grid (grid/copy-local shared-grid)
+          reachable? (expand src dst local-grid params)]
       (if reachable?
         (let [path (traceback local-grid dst params)]
           (when path
