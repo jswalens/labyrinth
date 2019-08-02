@@ -3,7 +3,7 @@
             [labyrinth.grid :as grid]
             [labyrinth.util :refer [dosync-tracked]])
   (:import [java.io StringWriter]
-           [java.util LinkedList]))
+           [java.util HashSet LinkedList]))
 
 ; Note: C++ function router_alloc is not needed, we just pass the parameters
 ; directly.
@@ -61,7 +61,8 @@
         (grid/set-point local-grid neighbor (:value neighbor)))
       neighbors-to-expand)))
 
-(defn expand [src dst local-grid params]
+; --- ORIGINAL VARIANT
+(defn expand-original [src dst local-grid params]
   "Try to find a path from `src` to `dst` through `local-grid`.
   Updates `local-grid` and returns true if the destination was reached. (There
   might be multiple paths from src to dst in the grid.)"
@@ -79,6 +80,80 @@
             (let [new-points (expand-point local-grid current params)]
               (.addAll queue new-points)
               (recur))))))))
+; --- END ORIGINAL VARIANT
+
+; --- PBFS VARIANT
+(defmacro for-all [seq-exprs body-expr]
+  `(doall
+    (for ~seq-exprs
+      ~body-expr)))
+
+(defmacro parallel-for-all [seq-exprs body-expr]
+  `(map deref
+    (doall
+      (for ~seq-exprs
+        (future ~body-expr)))))
+
+(defn new-bag
+  ([] (HashSet.))
+  ([init] (let [bag (HashSet.)] (.addAll bag init) bag)))
+
+(defn expand-step [bag dst local-grid params]
+  (let [partition-size
+          ; divide bag in (:n-partitions params) (default 4), but with minimum
+          ; size 20
+          (max (int (/ (count bag) (:n-partitions params))) 20)
+        partitions
+          (doall (partition partition-size partition-size (list) bag))
+        partial-bags
+          (doall
+            (parallel-for-all [partition partitions]
+              (let [partial-bag (HashSet.)]
+                (loop [points partition]
+                  (if (empty? points)
+                    {:found false :bag partial-bag}
+                    (let [current (first points)]
+                      (if (coordinate/equal? current dst)
+                        {:found true :bag partial-bag}
+                        (do
+                          (.addAll partial-bag (expand-point local-grid current params))
+                          (recur (rest points))))))))))
+        result
+          (reduce
+            (fn [{found-1 :found bag-1 :bag} {found-2 :found bag-2 :bag}]
+              (.addAll bag-1 bag-2)
+              {:found (or found-1 found-2) :bag bag-1})
+            partial-bags)]
+    result))
+
+(defn expand-bag [local-grid src dst params]
+  "Returns true if a path from src to dst was found, false if no path was
+  found. Modifies local-grid in both cases.
+
+  This is a version that uses 'bags', inspired by [1] and [2].
+
+  [1] Y. Zhang and E. A. Hansen. Parallel Breadth-First Heuristic Search on a
+  Shared-Memory Architecture. In AAAI Workshop on Heuristic Search, Memory-Based
+  Heuristics and Their Applications, 2006.
+  [2] C. E. Leierson and T. B. Schardl. A Work-Efficient Parallel Breadth-First
+  Search Algorithm (or How to Cope with the Nondeterminism of Reducers). In
+  SPAA'10, 2010."
+  (loop [bag (new-bag [src])]
+    (if (empty? bag)
+      false
+      (let [{found :found new-bag :bag} (expand-step bag dst local-grid params)]
+        (if found
+          true
+          (recur new-bag))))))
+
+(defn expand-pbfs [src dst local-grid params]
+  "Try to find a path from `src` to `dst` through `local-grid`.
+  Updates `local-grid` and returns true if the destination was reached. (There
+  might be multiple paths from src to dst in the grid.)"
+  (grid/set-point local-grid src 0)
+  (grid/set-point local-grid dst :empty)
+  (expand-bag local-grid src dst params))
+; --- END PBFS VARIANT
 
 (defn next-steps [local-grid current-step bend-cost]
   "All possible next steps after the current one, and their cost.
@@ -153,7 +228,10 @@
   A path is a vector of points."
   (dosync-tracked
     (let [local-grid (grid/copy-local shared-grid)
-          reachable? (expand src dst local-grid params)]
+          reachable?
+            (case (:variant params)
+              "original" (expand-original src dst local-grid params)
+                         (expand-pbfs src dst local-grid params))]
       (if reachable?
         (let [path (traceback local-grid dst params)]
           (when path
