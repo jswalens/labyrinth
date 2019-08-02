@@ -5,8 +5,9 @@
             [labyrinth.router :as router]
             [labyrinth.util :refer [str->int time print-tx-stats]]))
 
-(def default-params
-  {:bend-cost  1
+(def default-args
+  {:variant    "pbfs"
+   :bend-cost  1
    :n-threads  1
    :n-partitions 4
    :x-cost     1
@@ -16,18 +17,20 @@
    :print      false})
 
 (def usage
-"Usage: ./labyrinth [options]
+"Usage: lein run -- [options]
 
-Options:                              (defaults)
+Options:                    values        default
+  v  [v]ariant              original|pbfs (pbfs)
+  b  [b]end cost            <INT>         (1)
+  i  [i]nput file name      <FILE>        (labyrinth/inputs/random-x32-y32-z3-n96.txt)
+  p  [p]rint routed maze                  (false)
+  t  Number of [t]hreads    <UINT>        (1)
+  x  [x] movement cost      <UINT>        (1)
+  y  [y] movement cost      <UINT>        (1)
+  z  [z] movement cost      <UINT>        (2)
 
-    b <INT>    [b]end cost            (1)
-    i <FILE>   [i]nput file name      (labyrinth/inputs/random-x32-y32-z3-n96.txt)
-    p          [p]rint routed maze    (false)
-    t <UINT>   Number of [t]hreads    (1)
-    a <UINT>   Number of p[a]rtitions (4)
-    x <UINT>   [x] movement cost      (1)
-    y <UINT>   [y] movement cost      (1)
-    z <UINT>   [z] movement cost      (2)")
+Only for pbfs variant:
+  a  Number of p[a]rtitions <UINT>        (4)")
 
 (def log println)
 
@@ -40,6 +43,7 @@ Options:                              (defaults)
               ; return a function. In the next iteration, this will be filled in
               ; by calling it with the parameter value.
               (case (.substring arg 1)
+                "v" #(assoc res :variant %)
                 "b" #(assoc res :bend-cost (str->int %))
                 "t" #(assoc res :n-threads (str->int %))
                 "a" #(assoc res :n-partitions (str->int %))
@@ -49,7 +53,7 @@ Options:                              (defaults)
                 "i" #(assoc res :input-file %)
                 "p" (assoc res :print true)
                     (assoc res :arg-error true))
-              (assoc default-params :arg-error true)))
+              (assoc default-args :arg-error true)))
         process-argument-value
           (fn [res arg]
             ; Call previous result, assuming it's a function that sets the
@@ -63,10 +67,10 @@ Options:                              (defaults)
               (if (.startsWith arg "-")
                 (process-argument-name res arg)
                 (process-argument-value res arg)))
-            default-params args)]
+            default-args args)]
       (if (map? result)
         result
-        (assoc default-params :arg-error true))))
+        (assoc default-args :arg-error true))))
 
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
@@ -80,6 +84,7 @@ Options:                              (defaults)
       (println "The input file" (:input-file params) "does not exist.")
       (println "Specify an input file using the command line parameter -i.")
       (System/exit 2))
+    (println "Variant         =" (:variant params))
     (let [maze
             (maze/read (:input-file params))
           paths-per-thread

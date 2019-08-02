@@ -3,7 +3,7 @@
   (:require [random]
             [labyrinth.coordinate :as coordinate]))
 
-(defn alloc-shared [width height depth]
+(defn alloc [width height depth]
   "Returns an empty shared grid of the requested size.
   Points are refs containing either :empty or :full.
 
@@ -15,22 +15,19 @@
    :costs  (vec (repeatedly (* width height depth) #(random/rand-int 100)))
    :points (vec (repeatedly (* width height depth) #(ref :empty)))})
 
-(defn alloc-local [width height depth]
-  "Returns an empty local grid of the requested size.
-  Points are either :empty or :full, not encapsulated in a ref.
+(defn min-grid-point [a b]
+  "Between two grid points `a` and `b`, return the minimum.
+  Order: :empty < 0 < 1 < ... < inf < :full."
+  (cond
+    (= a :full)  :full
+    (= b :full)  :full
+    (= a :empty) b
+    (= b :empty) a
+    :else        (min a b)))
 
-  The C++ version ensures the points are aligned in the cache, we don't do
-  this in Clojure."
-  {:width  width
-   :height height
-   :depth  depth
-   :costs  (vec (repeatedly (* width height depth) #(random/rand-int 100)))
-   :points (vec (repeat (* width height depth) :empty))})
-
-(defn copy [grid]
-  "Make a local grid, copying the given shared grid.
-  Points will be :empty, :full, or filled with a number; not encapsulated in a
-  ref.
+(defn copy-local [grid]
+  "Copy a shared grid to a local grid.
+  Points will be :empty, :full, or filled with a number.
 
   Again, unlike the C++ version we don't care about cache alignment.
   Also, this is like the C++ version with USE_EARLY_RELEASE false."
@@ -39,7 +36,10 @@
      :height (:height grid)
      :depth  (:depth grid)
      :costs  (:costs grid)
-     :points (vec (map deref (:points grid)))}))
+     :points (vec
+               (map
+                 #(ref (deref %) :resolve (fn [o p c] (min-grid-point p c)))
+                 (:points grid)))}))
 
 (defn is-point-valid? [grid {x :x y :y z :z}]
   "Is the point valid, i.e. within the boundaries of `grid`?"
@@ -52,8 +52,7 @@
     (< z (:depth grid))))
 
 (defn get-point-index [grid {x :x y :y z :z}]
-  "Get the index of a 3D point in a 1D grid vector.
-  Works on local and shared grids."
+  "Get the index of a 3D point in a 1D grid vector."
   (+ x (* (+ y (* z (:height grid))) (:width grid))))
 
 ; C++ function grid_getPointIndices does the reverse of get-point-index:
@@ -61,33 +60,26 @@
 ; that as we always pass around the x,y,z coordinates.
 
 (defn get-point [grid point]
-  "Get a point in the grid, or throws an exception if not found.
-  Works on local and shared grids (for shared, it will return a ref)."
-  (nth (:points grid) (get-point-index grid point)))
+  "Get a point in the grid, or throws an exception if not found."
+  @(nth (:points grid) (get-point-index grid point)))
 
 ; C++ functions grid_isPointEmpty and grid_isPointFull are embedded directly
 ; where they are used.
 
-(defn set-point [local-grid point v]
-  "Set a point in the grid to `v`, returns updated grid.
-  Works on local grid, not on shared one (there, the point is a ref and should
-  be updated directly)."
-  (assoc-in local-grid [:points (get-point-index local-grid point)] v))
+(defn set-point [grid point v]
+  "Set a point in the grid to `v`."
+  (ref-set (nth (:points grid) (get-point-index grid point)) v))
 
 (defn get-point-cost [grid point]
   "Get the cost associated to a point in the grid, or throws an exception if
-  point not found. Works on local and shared grids."
+  point not found."
   (nth (:costs grid) (get-point-index grid point)))
 
-(defn grid-map [grid f]
-  "Map over points in grid, call (fn p) for each point."
-  (update-in grid [:points] (fn [points] (vec (map f points)))))
-
 (defn add-path [grid path]
-  "Set all points in `path` as full. Only works on shared grid."
+  "Set all points in `path` as full."
   (dosync
     (doseq [point path]
-      (ref-set (get-point grid point) :full))))
+      (set-point grid point :full))))
 
 (defn- print-point [val]
   (case val
