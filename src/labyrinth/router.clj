@@ -89,10 +89,11 @@
       ~body-expr)))
 
 (defmacro parallel-for-all [seq-exprs body-expr]
-  `(map deref
-    (doall
-      (for ~seq-exprs
-        (future ~body-expr)))))
+  `(doall
+    (map deref
+      (doall
+        (for ~seq-exprs
+          (future ~body-expr))))))
 
 (defn new-bag
   ([] (HashSet.))
@@ -106,18 +107,17 @@
         partitions
           (doall (partition partition-size partition-size (list) bag))
         partial-bags
-          (doall
-            (parallel-for-all [partition partitions]
-              (let [partial-bag (HashSet.)]
-                (loop [points partition]
-                  (if (empty? points)
-                    {:found false :bag partial-bag}
-                    (let [current (first points)]
-                      (if (coordinate/equal? current dst)
-                        {:found true :bag partial-bag}
-                        (do
-                          (.addAll partial-bag (expand-point local-grid current params))
-                          (recur (rest points))))))))))
+          (parallel-for-all [partition partitions]
+            (let [partial-bag (HashSet.)]
+              (loop [points partition]
+                (if (empty? points)
+                  {:found false :bag partial-bag}
+                  (let [current (first points)]
+                    (if (coordinate/equal? current dst)
+                      {:found true :bag partial-bag}
+                      (do
+                        (.addAll partial-bag (expand-point local-grid current params))
+                        (recur (rest points)))))))))
         result
           (reduce
             (fn [{found-1 :found bag-1 :bag} {found-2 :found bag-2 :bag}]
