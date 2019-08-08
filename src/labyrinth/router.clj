@@ -119,7 +119,7 @@
           partition-size
             (max (int (/ (count bag) (:n-partitions params))) 20)
           partitions
-            (doall (partition partition-size partition-size (list) bag))
+            (partition partition-size partition-size (list) bag)
           partial-results
             (parallel-for-all [partition partitions]
               (expand-partition partition dst local-grid params))]
