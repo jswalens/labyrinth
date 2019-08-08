@@ -144,12 +144,11 @@
   https://www.youtube.com/watch?v=pxOL-R7gUiQ"
   (let [found? (ref false :resolve (fn [o p c] (or p c)))]
     (loop [bag (new-bag [src])]
-      (if (empty? bag)
-        false
-        (let [new-bag (expand-step bag dst local-grid found? params)]
-          (if @found?
-            true
-            (recur new-bag)))))))
+      (let [new-bag (expand-step bag dst local-grid found? params)]
+        (cond
+          @found?          true
+          (empty? new-bag) false
+          :else            (recur new-bag))))))
 
 (defn expand-pbfs [src dst local-grid params]
   "Try to find a path from `src` to `dst` through `local-grid`.
