@@ -99,55 +99,57 @@
   ([] (HashSet.))
   ([init] (let [bag (HashSet.)] (.addAll bag init) bag)))
 
-(defn expand-partition [partition dst local-grid params]
+(defn expand-partition [partition dst local-grid found? params]
   (let [partial-bag (new-bag)]
     (loop [points partition]
-      (if (empty? points)
-        {:found false :bag partial-bag}
-        (let [current (first points)]
-          (if (coordinate/equal? current dst)
-            {:found true :bag partial-bag}
-            (do
-              (.addAll partial-bag (expand-point local-grid current params))
-              (recur (rest points)))))))))
+      (if-let [current (first points)]
+        (if (coordinate/equal? current dst)
+          (ref-set found? true)
+          (do
+            (.addAll partial-bag (expand-point local-grid current params))
+            (recur (rest points))))))
+    partial-bag))
 
-(defn expand-step [bag dst local-grid params]
+(defn expand-step [bag dst local-grid found? params]
   (if (< (count bag) 25) ; only parallelize if there are >=25 points in the bag
-    (expand-partition bag dst local-grid params)
+    (expand-partition bag dst local-grid found? params)
     (let [; divide bag in (:n-partitions params) (default 4) partitions, but
           ; partition size should be at least 20
           partition-size
             (max (int (/ (count bag) (:n-partitions params))) 20)
           partitions
             (partition partition-size partition-size (list) bag)
-          partial-results
+          partial-bags
             (parallel-for-all [partition partitions]
-              (expand-partition partition dst local-grid params))]
+              (expand-partition partition dst local-grid found? params))]
       (reduce
-        (fn [{found-1 :found bag-1 :bag} {found-2 :found bag-2 :bag}]
+        (fn [bag-1 bag-2]
           (.addAll bag-1 bag-2)
-          {:found (or found-1 found-2) :bag bag-1})
-        partial-results))))
+          bag-1)
+        partial-bags))))
 
 (defn expand-bag [local-grid src dst params]
   "Returns true if a path from src to dst was found, false if no path was
   found. Modifies local-grid in both cases.
 
-  This is a version that uses 'bags', inspired by [1] and [2].
+  This is a version that uses 'bags', inspired by [1], [2], and [3].
 
   [1] Y. Zhang and E. A. Hansen. Parallel Breadth-First Heuristic Search on a
   Shared-Memory Architecture. In AAAI Workshop on Heuristic Search, Memory-Based
   Heuristics and Their Applications, 2006.
   [2] C. E. Leierson and T. B. Schardl. A Work-Efficient Parallel Breadth-First
   Search Algorithm (or How to Cope with the Nondeterminism of Reducers). In
-  SPAA'10, 2010."
-  (loop [bag (new-bag [src])]
-    (if (empty? bag)
-      false
-      (let [{found :found new-bag :bag} (expand-step bag dst local-grid params)]
-        (if found
-          true
-          (recur new-bag))))))
+  SPAA'10, 2010.
+  [3] 'High Performance Computing' class on Udacity.
+  https://www.youtube.com/watch?v=pxOL-R7gUiQ"
+  (let [found? (ref false :resolve (fn [o p c] (or p c)))]
+    (loop [bag (new-bag [src])]
+      (if (empty? bag)
+        false
+        (let [new-bag (expand-step bag dst local-grid found? params)]
+          (if @found?
+            true
+            (recur new-bag)))))))
 
 (defn expand-pbfs [src dst local-grid params]
   "Try to find a path from `src` to `dst` through `local-grid`.
