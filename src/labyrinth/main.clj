@@ -6,7 +6,7 @@
             [labyrinth.util :refer [str->int time print-tx-stats]]))
 
 (def default-args
-  {:variant    "pbfs"
+  {:variant    :pbfs
    :bend-cost  1
    :n-threads  1
    :n-partitions 4
@@ -43,7 +43,10 @@ Only for pbfs variant:
               ; return a function. In the next iteration, this will be filled in
               ; by calling it with the parameter value.
               (case (.substring arg 1)
-                "v" #(assoc res :variant %)
+                "v" #(assoc res :variant
+                       (case %
+                         "original" :original
+                                    :pbfs))
                 "b" #(assoc res :bend-cost (str->int %))
                 "t" #(assoc res :n-threads (str->int %))
                 "a" #(assoc res :n-partitions (str->int %))

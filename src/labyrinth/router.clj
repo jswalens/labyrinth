@@ -229,8 +229,8 @@
     (let [local-grid (grid/copy-local shared-grid)
           reachable?
             (case (:variant params)
-              "original" (expand-original src dst local-grid params)
-                         (expand-pbfs src dst local-grid params))]
+              :original (expand-original src dst local-grid params)
+                        (expand-pbfs src dst local-grid params))]
       (if reachable?
         (let [path (traceback local-grid dst params)]
           (when path
