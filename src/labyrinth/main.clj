@@ -5,6 +5,12 @@
             [labyrinth.router :as router]
             [labyrinth.util :refer [str->int time print-tx-stats]]))
 
+(defmacro parallel-for-all [seq-exprs body-expr]
+  `(map deref
+    (doall
+      (for ~seq-exprs
+        (future ~body-expr)))))
+
 (def default-args
   {:variant    :pbfs
    :bend-cost  1
@@ -95,11 +101,9 @@ Only for pbfs variant:
           results
             (time ; time everything
               (doall
-                (pmap
-                  (fn [_]
-                    (time ; timer per thread
-                      (router/solve params maze paths-per-thread)))
-                  (range (:n-threads params)))))]
+                (parallel-for-all [_i (range (:n-threads params))]
+                  (time ; timer per thread
+                    (router/solve params maze paths-per-thread)))))]
       ;(log "Paths (per thread):" @paths-per-thread)
       (println "Paths routed    =" (reduce + (map count @paths-per-thread)))
       (println "Elapsed time    =" (:time results) "milliseconds")
