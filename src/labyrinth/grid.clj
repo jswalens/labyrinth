@@ -12,7 +12,7 @@
   {:width  width
    :height height
    :depth  depth
-   :costs  (vec (repeatedly (* width height depth) #(random/rand-int 100)))
+   :costs  (vec (repeatedly (* width height depth) #(random/rand-int 5)))
    :points (vec (repeatedly (* width height depth) #(ref :empty)))})
 
 (defn min-grid-point [a b]
