@@ -3,40 +3,44 @@
   (:refer-clojure :exclude [time])
   (:require [labyrinth.maze :as maze]
             [labyrinth.router :as router]
-            [labyrinth.util :refer [str->int time print-tx-stats]]))
+            [labyrinth.util :refer [str->int time print-tx-stats]]
+            [taoensso.tufte :as tufte :refer [profiled p format-pstats]]))
 
 (defmacro parallel-for-all [seq-exprs body-expr]
-  `(map deref
-    (doall
-      (for ~seq-exprs
-        (future ~body-expr)))))
+  `(doall
+    (map deref
+      (doall
+        (for ~seq-exprs
+          (future ~body-expr))))))
 
 (def default-args
-  {:variant    :pbfs
-   :bend-cost  1
+  {:input-file "inputs/random-x32-y32-z3-n64.txt"
+   :variant    :pbfs
    :n-threads  1
    :n-partitions 4
    :x-cost     1
    :y-cost     1
    :z-cost     2
-   :input-file "inputs/random-x32-y32-z3-n64.txt"
-   :print      false})
+   :bend-cost  1
+   :print      false
+   :profile    false})
 
 (def usage
 "Usage: lein run -- [options]
 
 Options:                    values        default
-  v  [v]ariant              original|pbfs (pbfs)
-  b  [b]end cost            <INT>         (1)
   i  [i]nput file name      <FILE>        (labyrinth/inputs/random-x32-y32-z3-n96.txt)
-  p  [p]rint routed maze                  (false)
-  t  Number of [t]hreads    <UINT>        (1)
+  v  [v]ariant              original|pbfs (pbfs)
+  t  number of [t]hreads    <UINT>        (1)
   x  [x] movement cost      <UINT>        (1)
   y  [y] movement cost      <UINT>        (1)
   z  [z] movement cost      <UINT>        (2)
+  b  [b]end cost            <INT>         (1)
+  p  [p]rint routed maze                  (false)
+  m  enable profiling                     (false)
 
 Only for pbfs variant:
-  a  Number of p[a]rtitions <UINT>        (4)")
+  a  number of p[a]rtitions <UINT>        (4)")
 
 (def log println)
 
@@ -49,18 +53,19 @@ Only for pbfs variant:
               ; return a function. In the next iteration, this will be filled in
               ; by calling it with the parameter value.
               (case (.substring arg 1)
+                "i" #(assoc res :input-file %)
                 "v" #(assoc res :variant
                        (case %
                          "original" :original
                                     :pbfs))
-                "b" #(assoc res :bend-cost (str->int %))
                 "t" #(assoc res :n-threads (str->int %))
                 "a" #(assoc res :n-partitions (str->int %))
                 "x" #(assoc res :x-cost (str->int %))
                 "y" #(assoc res :y-cost (str->int %))
                 "z" #(assoc res :z-cost (str->int %))
-                "i" #(assoc res :input-file %)
+                "b" #(assoc res :bend-cost (str->int %))
                 "p" (assoc res :print true)
+                "m" (assoc res :profile true)
                     (assoc res :arg-error true))
               (assoc default-args :arg-error true)))
         process-argument-value
@@ -93,23 +98,24 @@ Only for pbfs variant:
       (println "The input file" (:input-file params) "does not exist.")
       (println "Specify an input file using the command line parameter -i.")
       (System/exit 2))
+    (tufte/set-min-level! (if (:profile params) 0 6))
     (println "Variant         =" (:variant params))
     (let [maze
             (maze/read (:input-file params))
           paths-per-thread
             (ref [])
-          results
-            (time ; time everything
-              (doall
+          [[results total-time] pstats]
+            (profiled {:level 3 :dynamic? true}
+              (p :all (time ; time/profile everything
                 (parallel-for-all [_i (range (:n-threads params))]
-                  (time ; timer per thread
-                    (router/solve params maze paths-per-thread)))))]
+                  (p :thread (time ; timer/profile per thread
+                    (router/solve params maze paths-per-thread)))))))]
       ;(log "Paths (per thread):" @paths-per-thread)
       (println "Paths routed    =" (reduce + (map count @paths-per-thread)))
-      (println "Elapsed time    =" (:time results) "milliseconds")
+      (println "Elapsed time    =" total-time "milliseconds")
       (println "Time per thread:")
-      (doseq [t (:result results)]
-        (println " " (:time t) "milliseconds"))
+      (doseq [[_result thread-time] results]
+        (println " " thread-time "milliseconds"))
       (print-tx-stats)
       ; verification of paths, also prints grid if asked to
       ; Note: (apply concat ...) flattens once, i.e. it turns the list of
@@ -119,6 +125,7 @@ Only for pbfs variant:
             (:print params))
         (println "Verification passed.")
         (println "Verification FAILED!"))
+      (when (:profile params) (println (format-pstats pstats)))
       (shutdown-agents))))
 
 ; To run manually:

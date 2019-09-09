@@ -9,12 +9,12 @@
       nil)))
 
 (defmacro time [expr]
-  "Based on Clojure's time, but returns {:time time :result value},
+  "Based on Clojure's time, but returns [result time],
   instead of printing to *out*."
   `(let [start# (. System (nanoTime))
          ret#   ~expr
          time#  (/ (double (- (. System (nanoTime)) start#)) 1000000.0)]
-     {:time time# :result ret#}))
+     [ret# time#]))
 
 (def n-tx (atom 0))
 (def tries-per-tx (atom {}))
@@ -23,7 +23,7 @@
 (defmacro dosync-tracked [& body]
   `(do
     (let [tx-i# (swap! n-tx inc)
-          {time# :time result# :result}
+          [result# time#]
             (time
               (dosync
                 (swap! tries-per-tx #(assoc % tx-i# (inc (get % tx-i# 0))))
