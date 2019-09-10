@@ -4,7 +4,8 @@
             [labyrinth.util :refer [dosync-tracked]]
             [taoensso.tufte :as tufte :refer [defnp p]])
   (:import [java.io StringWriter]
-           [java.util HashSet LinkedList]))
+           [java.util LinkedList]
+           [java.util.concurrent ConcurrentHashMap]))
 
 ; Note: C++ function router_alloc is not needed, we just pass the parameters
 ; directly.
@@ -97,39 +98,32 @@
           (future ~body-expr))))))
 
 (defn new-bag
-  ([] (HashSet.))
-  ([init] (let [bag (HashSet.)] (.addAll bag init) bag)))
+  ([] (ConcurrentHashMap/newKeySet))
+  ([init] (let [bag (ConcurrentHashMap/newKeySet)] (.addAll bag init) bag)))
 
-(defnp expand-partition [partition dst local-grid found? params]
-  (let [partial-bag (new-bag)]
-    (loop [points partition]
-      (if-let [current (first points)]
-        (if (coordinate/equal? current dst)
-          (ref-set found? true)
-          (do
-            (.addAll partial-bag (expand-point local-grid current params))
-            (recur (rest points))))))
-    partial-bag))
+(defnp expand-partition [points new-bag dst local-grid found? params]
+  (loop [points points]
+    (if-let [current (first points)]
+      (if (coordinate/equal? current dst)
+        (ref-set found? true)
+        (do
+          (.addAll new-bag (expand-point local-grid current params))
+          (recur (rest points)))))))
 
 (defnp expand-step [bag dst local-grid found? params]
-  (if (< (count bag) 25) ; only parallelize if there are >=25 points in the bag
-    (expand-partition bag dst local-grid found? params)
-    (let [; divide bag in (:n-partitions params) (default 4) partitions, but
-          ; partition size should be at least 20
-          partition-size
-            (max (int (/ (count bag) (:n-partitions params))) 20)
-          partitions
-            (partition partition-size partition-size (list) bag)
-          partial-bags
-            (p :expand-partitions
-              (parallel-for-all [partition partitions]
-                (p :expand-partition
-                  (expand-partition partition dst local-grid found? params))))]
-      (reduce
-        (fn [bag-1 bag-2]
-          (.addAll bag-1 bag-2)
-          bag-1)
-        partial-bags))))
+  (let [new-bag (new-bag)]
+    (if (< (count bag) 25)
+      ; process sequentially if there are < 25 points in the bag
+      (expand-partition bag new-bag dst local-grid found? params)
+      ; divide bag in (:n-partitions params) (default 4) partitions, but
+      ; partition size should be at least 20
+      (let [partition-size (max (int (/ (count bag) (:n-partitions params))) 20)
+            partitions     (partition partition-size partition-size (list) bag)]
+        (p :expand-partitions
+          (parallel-for-all [partition partitions]
+            (p :expand-partition
+              (expand-partition partition new-bag dst local-grid found? params))))))
+    new-bag))
 
 (defnp expand-bag [local-grid src dst params]
   "Returns true if a path from src to dst was found, false if no path was
@@ -144,7 +138,8 @@
   Search Algorithm (or How to Cope with the Nondeterminism of Reducers). In
   SPAA'10, 2010.
   [3] 'High Performance Computing' class on Udacity.
-  https://www.youtube.com/watch?v=pxOL-R7gUiQ"
+  https://www.youtube.com/watch?v=pxOL-R7gUiQ and
+  https://www.youtube.com/watch?v=M4HSekx-8XA"
   (let [found? (ref false :resolve (fn [o p c] (or p c)))]
     (loop [bag (new-bag [src])]
       (let [new-bag (expand-step bag dst local-grid found? params)]

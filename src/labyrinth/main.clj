@@ -18,9 +18,9 @@
    :variant    :pbfs
    :n-threads  1
    :n-partitions 4
-   :x-cost     1
-   :y-cost     1
-   :z-cost     2
+   :x-cost     20
+   :y-cost     20
+   :z-cost     60
    :bend-cost  1
    :print      false
    :profile    false})
