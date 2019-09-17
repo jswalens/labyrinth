@@ -220,7 +220,7 @@
             (if (empty? @queue)
               nil
               (let [top (first @queue)]
-                (alter queue pop)
+                (alter queue rest)
                 top)))]
     (log "found work" work)
     work))
