@@ -39,13 +39,18 @@ def parse_file(filename):
             t_values.add(t)
             a_values.add(a)
 
-    medians = {}  # (variant, t, a) -> median time
+    quartiles = {}  # (variant, t, a) -> {25: x, 50: y, 75: z}
     for k, times in results.items():
-        medians[k] = numpy.median(times)
+        quartiles[k] = {
+            25: numpy.percentile(times, 25),
+            50: numpy.median(times),
+            75: numpy.percentile(times, 75),
+        }
 
-    out = ""
-    for k in sorted(medians.keys()):
-        out += "%s,%s,%s,%s\n" % (k[0], k[1], k[2], medians[k])
+    out = "variant,t,a,25,median,75\n"
+    for k in sorted(quartiles.keys()):
+        out += "{},{},{},{},{},{}\n".format(k[0], k[1], k[2], quartiles[k][25],
+            quartiles[k][50], quartiles[k][75])
     return out
 
 out = parse_file(FILE)
