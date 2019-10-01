@@ -143,7 +143,7 @@ def draw(speedups):
     ax = plt.axes()
     sns.despine(top=True, right=True, left=True, bottom=True)
 
-    ax.set_title("Measured speed-up", fontsize="x-large")
+    #ax.set_title("Speed-up of different versions", fontsize="x-large")
 
     ax.set_xlabel(r"Maximal number of threads ($t \times\ p$)", fontsize="large")
     ax.set_xscale("log", basex=2)
@@ -151,7 +151,7 @@ def draw(speedups):
     ax.set_xticklabels(X_TICKS)
     ax.set_xlim(0.98, 259)
 
-    ax.set_ylabel("Measured speed-up", fontsize="large")
+    ax.set_ylabel("Speed-up", fontsize="large")
     ax.set_ylim(0, 2.5)
     ax.set_yticks([0.0, 0.5, 1.0, 1.5, 2.0, 2.5])
 
