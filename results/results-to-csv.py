@@ -32,6 +32,10 @@ Elapsed time    = (?P<total_time>[\d.]+) milliseconds
 (?P<debugging_info>.*)
 Verification passed\.""", flags=re.DOTALL)
 
+# This is part of the debugging_info above.
+NUMBER_OF_ATTEMPTS_FORMAT = re.compile(
+    r"Average tries per transaction: (?P<n_attempts>[\d.]+)")
+
 def parse_info(dir_name):
     contents = open(os.path.join(dir_name, "info.txt")).read()
 
@@ -51,11 +55,11 @@ def parse_info(dir_name):
         "input": matches.group("input"),
     }
 
-def print_line(variant, t, a, i, time):
-    return "%s,%s,%s,%s,%s\n" % (variant, t, a, i, time)
+def print_line(variant, t, a, i, time, attempts):
+    return "%s,%s,%s,%s,%s,%s\n" % (variant, t, a, i, time, attempts)
 
 def parse_results_dir(dir_name, parameters=False):
-    out = "variant,t,a,i,time (ms)\n"
+    out = "variant,t,a,i,time (ms),attempts\n"
     errors = []
 
     for f_name in os.listdir(dir_name):
@@ -95,7 +99,12 @@ def parse_results_dir(dir_name, parameters=False):
 
         time = matches.group("total_time")
 
-        out += print_line(variant, t, a, i, time)
+        debugging_info = matches.group("debugging_info")
+        if debugging_info:
+            debugging_info_matches = NUMBER_OF_ATTEMPTS_FORMAT.search(debugging_info)
+            n_attempts = debugging_info_matches.group("n_attempts")
+
+        out += print_line(variant, t, a, i, time, n_attempts)
 
     return out, errors
 

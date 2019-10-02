@@ -17,27 +17,21 @@ else:
 
 def parse_file(filename):
     results = defaultdict(list)  # (variant, t, a) -> [time]
-    variant_values = set()
-    t_values = set()
-    a_values = set()
     with open(filename, "r", encoding="utf-8") as file:
         file.readline()  # skip header
         for line in file:
             if line.strip() == "":
                 continue
             try:
-                variant, t, a, i, time = line.split(",")
-                # time is suffixed with \n
+                variant, t, a, i, time, n_attempts = line.split(",")
+                # n_attempts is suffixed with \n
             except ValueError:
                 print("Error: could not read line:\n%s" % line)
             t = int(t)
             if a != "None":
                 a = int(a)
-            time = float(str(time).strip())
+            time = float(str(time))
             results[(variant, t, a)].append(time)
-            variant_values.add(variant)
-            t_values.add(t)
-            a_values.add(a)
 
     quartiles = {}  # (variant, t, a) -> {25: x, 50: y, 75: z}
     for k, times in results.items():
