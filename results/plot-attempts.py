@@ -24,29 +24,29 @@ VTAS = [ # ordered
     ("original",  8, None),
     ("original", 16, None),
     ("pbfs",      1,    1),
-    ("pbfs",      1,    2),
-    ("pbfs",      1,    4),
-    ("pbfs",      1,    8),
-    ("pbfs",      1,   16),
     ("pbfs",      2,    1),
-    ("pbfs",      2,    2),
-    ("pbfs",      2,    4),
-    ("pbfs",      2,    8),
-    ("pbfs",      2,   16),
     ("pbfs",      4,    1),
-    ("pbfs",      4,    2),
-    ("pbfs",      4,    4),
-    ("pbfs",      4,    8),
-    ("pbfs",      4,   16),
     ("pbfs",      8,    1),
-    ("pbfs",      8,    2),
-    ("pbfs",      8,    4),
-    ("pbfs",      8,    8),
-    ("pbfs",      8,   16),
     ("pbfs",     16,    1),
+    ("pbfs",      1,    2),
+    ("pbfs",      2,    2),
+    ("pbfs",      4,    2),
+    ("pbfs",      8,    2),
     ("pbfs",     16,    2),
+    ("pbfs",      1,    4),
+    ("pbfs",      2,    4),
+    ("pbfs",      4,    4),
+    ("pbfs",      8,    4),
     ("pbfs",     16,    4),
+    ("pbfs",      1,    8),
+    ("pbfs",      2,    8),
+    ("pbfs",      4,    8),
+    ("pbfs",      8,    8),
     ("pbfs",     16,    8),
+    ("pbfs",      1,   16),
+    ("pbfs",      2,   16),
+    ("pbfs",      4,   16),
+    ("pbfs",      8,   16),
     ("pbfs",     16,   16),
 ]
 
@@ -76,8 +76,8 @@ TIKZ_FILE_TEMPLATE = r"""
 \begin{axis}[
 x=17pt,
 y=2.3cm,
-ymin=1, ymax=2.5,
-ytick={1,1.5,2,2.5},
+ymin=1, ymax=2,
+ytick={1,1.25,1.5,1.75,2},
 ylabel={Avg.\ attempts/tx},
 xmin=0, xmax=$XMAX,
 xtick={$XTICKS},
@@ -102,15 +102,15 @@ $DATA
 
 \begin{scope}[every node/.style={anchor=base,inner sep=0pt,outer sep=0pt,minimum height=3ex}]
     \node[anchor=base east] at (-5pt,  -4ex) {Version:};
-    \node[anchor=base east] at (-5pt,  -8ex) {t:};
-    \node[anchor=base east] at (-5pt, -12ex) {p:};
+    \node[anchor=base east] at (-5pt,  -8ex) {p:};
+    \node[anchor=base east] at (-5pt, -12ex) {t:};
 
     \node[anchor=base west] at (0*17pt, -4ex) {sequential \midrule{$SEQ_RULELENGTHpt}};
     \node[anchor=base west] at (5*17pt, -4ex) {parallel \midrule{$PAR_RULELENGTHpt}};
 
-$T_LABELS
-
 $P_LABELS
+
+$T_LABELS
 \end{scope}
 
 % Annotations
@@ -162,21 +162,23 @@ def fill_in_template(attempts):
     n_par_attempts = sum(1 for (variant, t, a) in VTAS if variant == "pbfs")
     x_label_par_rulelength = str(n_par_attempts*17 - 55)
 
-    t_labels = ""
-    for (i, (variant, t, a)) in enumerate(VTAS):
-        if i != 0 and t == VTAS[i-1][1]:
-            t = ""
-        t_labels += "    \\node at ({:2}*17pt, -8ex) {{{:1}}};\n".format(i, t)
-
     a_labels = ""
     for (i, (variant, t, a)) in enumerate(VTAS):
         if a == None or (i != 0 and a == VTAS[i-1][2]):
             a = ""
-        a_labels += "    \\node at ({:2}*17pt, -12ex) {{{}}};\n".format(i, a)
+        a_labels += "    \\node at ({:2}*17pt, -8ex) {{{}}};\n".format(i, a)
 
+    t_labels = ""
+    for (i, (variant, t, a)) in enumerate(VTAS):
+        if i != 0 and t == VTAS[i-1][1]:
+            t = ""
+        t_labels += "    \\node at ({:2}*17pt, -12ex) {{{:1}}};\n".format(i, t)
+
+    #print(attempts[("original", 4, None)]) = 1.62
+    #print(attempts[("pbfs", 8, 16)]) = 1.84
     annotations = r"""
-    \node[anchor=mid west] at (4*17pt + 14pt, 2.53cm) {2.10};
-    \draw[Stealth-] (4*17pt + 6pt, 2.53cm) -- (4*17pt + 16pt, 2.53cm);
+    \node[anchor=mid west] at (2*17pt + 14pt, 2.53cm) {2.10};
+    \draw[Stealth-] (2*17pt + 6pt, 2.53cm) -- (2*17pt + 16pt, 2.53cm);
 
     \node[anchor=south] at (13*17pt, 1.7cm) {\parbox{4cm}{\centering optimal speed-up \\ 1.11}};
     \draw[Stealth-] (13*17pt, 0.35cm + 4pt) -- (13*17pt, 1.7cm);
