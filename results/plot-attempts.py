@@ -15,9 +15,9 @@ else:
     # 20190817T1454-1cc19b18-attempts.tex
     OUTPUT = re.sub(r"\.csv$", r"-attempts.tex", FILE)
 
-# Values for variant and a to show.
+# Values for variant, t, a to show.
 # The TikZ template below is hard-coded for these values, so this cannot change.
-VAS = [ # ordered
+VTAS = [ # ordered
     ("original",  1, None),
     ("original",  2, None),
     ("original",  4, None),
@@ -32,12 +32,22 @@ VAS = [ # ordered
     ("pbfs",      2,    2),
     ("pbfs",      2,    4),
     ("pbfs",      2,    8),
+    ("pbfs",      2,   16),
     ("pbfs",      4,    1),
     ("pbfs",      4,    2),
     ("pbfs",      4,    4),
+    ("pbfs",      4,    8),
+    ("pbfs",      4,   16),
     ("pbfs",      8,    1),
     ("pbfs",      8,    2),
+    ("pbfs",      8,    4),
+    ("pbfs",      8,    8),
+    ("pbfs",      8,   16),
     ("pbfs",     16,    1),
+    ("pbfs",     16,    2),
+    ("pbfs",     16,    4),
+    ("pbfs",     16,    8),
+    ("pbfs",     16,   16),
 ]
 
 TIKZ_FILE_TEMPLATE = r"""
@@ -69,8 +79,8 @@ y=2.3cm,
 ymin=1, ymax=2.5,
 ytick={1,1.5,2,2.5},
 ylabel={Avg.\ attempts/tx},
-xmin=0, xmax=19,
-xtick={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19},
+xmin=0, xmax=$XMAX,
+xtick={$XTICKS},
 xticklabels={},
 tick align=outside,
 xmajorgrids,
@@ -95,53 +105,16 @@ $DATA
     \node[anchor=base east] at (-5pt,  -8ex) {t:};
     \node[anchor=base east] at (-5pt, -12ex) {p:};
 
-    \node[anchor=base west] at (0*17pt, -4ex) {sequential \midrule{35pt}};
-    \node[anchor=base west] at (5*17pt, -4ex) {parallel \midrule{200pt}};
+    \node[anchor=base west] at (0*17pt, -4ex) {sequential \midrule{$SEQ_RULELENGTHpt}};
+    \node[anchor=base west] at (5*17pt, -4ex) {parallel \midrule{$PAR_RULELENGTHpt}};
 
-    \node at ( 0*17pt, -8ex) {1};
-    \node at ( 1*17pt, -8ex) {2};
-    \node at ( 2*17pt, -8ex) {4};
-    \node at ( 3*17pt, -8ex) {8};
-    \node at ( 4*17pt, -8ex) {16};
-    \node at ( 5*17pt, -8ex) {1};
-    \node at ( 6*17pt, -8ex) {};
-    \node at ( 7*17pt, -8ex) {};
-    \node at ( 8*17pt, -8ex) {};
-    \node at ( 9*17pt, -8ex) {};
-    \node at (10*17pt, -8ex) {2};
-    \node at (11*17pt, -8ex) {};
-    \node at (12*17pt, -8ex) {};
-    \node at (13*17pt, -8ex) {};
-    \node at (14*17pt, -8ex) {4};
-    \node at (15*17pt, -8ex) {};
-    \node at (16*17pt, -8ex) {};
-    \node at (17*17pt, -8ex) {8};
-    \node at (18*17pt, -8ex) {};
-    \node at (19*17pt, -8ex) {16};
+$T_LABELS
 
-    \node at ( 5*17pt, -12ex) {1};
-    \node at ( 6*17pt, -12ex) {2};
-    \node at ( 7*17pt, -12ex) {4};
-    \node at ( 8*17pt, -12ex) {8};
-    \node at ( 9*17pt, -12ex) {16};
-    \node at (10*17pt, -12ex) {1};
-    \node at (11*17pt, -12ex) {2};
-    \node at (12*17pt, -12ex) {4};
-    \node at (13*17pt, -12ex) {8};
-    \node at (14*17pt, -12ex) {1};
-    \node at (15*17pt, -12ex) {2};
-    \node at (16*17pt, -12ex) {4};
-    \node at (17*17pt, -12ex) {1};
-    \node at (18*17pt, -12ex) {2};
-    \node at (19*17pt, -12ex) {1};
+$P_LABELS
 \end{scope}
 
 % Annotations
-\node[anchor=mid west] at (4*17pt + 14pt, 2.53cm) {2.10};
-\draw[Stealth-] (4*17pt + 6pt, 2.53cm) -- (4*17pt + 16pt, 2.53cm);
-
-\node[anchor=south] at (13*17pt, 1.7cm) {\parbox{4cm}{\centering optimal speed-up \\ 1.11}};
-\draw[Stealth-] (13*17pt, 0.35cm + 4pt) -- (13*17pt, 1.7cm);
+$ANNOTATIONS
 
 \end{tikzpicture}
 
@@ -175,13 +148,49 @@ def parse_file(filename):
     return averages
 
 def fill_in_template(attempts):
-    selected_attempts = [attempts[va] for va in VAS]
+    selected_attempts = [attempts[vta] for vta in VTAS]
 
     data = ""
     for (i, n_attempts) in enumerate(selected_attempts):
         data += "+{} +{}\n".format(i, n_attempts)
 
-    return TIKZ_FILE_TEMPLATE.replace("$DATA", data)
+    x_max = str(len(VTAS) - 1)
+    x_ticks = ",".join(str(i) for i in range(len(VTAS)))
+
+    n_seq_attempts = sum(1 for (variant, t, a) in VTAS if variant == "original")
+    x_label_seq_rulelength = str(n_seq_attempts*17 - 50)
+    n_par_attempts = sum(1 for (variant, t, a) in VTAS if variant == "pbfs")
+    x_label_par_rulelength = str(n_par_attempts*17 - 55)
+
+    t_labels = ""
+    for (i, (variant, t, a)) in enumerate(VTAS):
+        if i != 0 and t == VTAS[i-1][1]:
+            t = ""
+        t_labels += "    \\node at ({:2}*17pt, -8ex) {{{:1}}};\n".format(i, t)
+
+    a_labels = ""
+    for (i, (variant, t, a)) in enumerate(VTAS):
+        if a == None or (i != 0 and a == VTAS[i-1][2]):
+            a = ""
+        a_labels += "    \\node at ({:2}*17pt, -12ex) {{{}}};\n".format(i, a)
+
+    annotations = r"""
+    \node[anchor=mid west] at (4*17pt + 14pt, 2.53cm) {2.10};
+    \draw[Stealth-] (4*17pt + 6pt, 2.53cm) -- (4*17pt + 16pt, 2.53cm);
+
+    \node[anchor=south] at (13*17pt, 1.7cm) {\parbox{4cm}{\centering optimal speed-up \\ 1.11}};
+    \draw[Stealth-] (13*17pt, 0.35cm + 4pt) -- (13*17pt, 1.7cm);
+    """
+
+    return (TIKZ_FILE_TEMPLATE
+        .replace("$DATA", data)
+        .replace("$XMAX", x_max)
+        .replace("$XTICKS", x_ticks)
+        .replace("$SEQ_RULELENGTH", x_label_seq_rulelength)
+        .replace("$PAR_RULELENGTH", x_label_par_rulelength)
+        .replace("$T_LABELS", t_labels)
+        .replace("$P_LABELS", a_labels)
+        .replace("$ANNOTATIONS", annotations))
 
 attempts = parse_file(FILE)
 #print(attempts)
