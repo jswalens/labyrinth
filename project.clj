@@ -1,4 +1,4 @@
-(defproject labyrinth "2.0.0"
+(defproject labyrinth "2.1.1"
   :description "Labyrinth benchmark from STAMP in Clojure, using transactional futures."
   :url "http://soft.vub.ac.be/~jswalens/chocola/"
   :dependencies [[com.taoensso/tufte "2.1.0" :exclusions [org.clojure/clojure]]]
